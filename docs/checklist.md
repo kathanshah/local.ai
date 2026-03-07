@@ -86,12 +86,15 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 - [ ] File descriptors: `grep LimitNOFILE /etc/systemd/system/ollama.service.d/override.conf` = 1048576
 - [ ] Qwen3-32B available: `ollama list` shows qwen3:32b
 
-## Open WebUI
+## Open WebUI (Stocky AI)
 
 - [ ] Container running: `sudo docker ps | grep open-webui` shows Up (healthy)
 - [ ] HTTP accessible: `curl -s -o /dev/null -w "%{http_code}" http://ai.local` = 200 or 302
 - [ ] Data persisted: `ls /mnt/ai-models/open-webui/` has files
-- [ ] Connected to Ollama: Models appear in WebUI dropdown
+- [ ] Docker→Ollama: `sudo docker exec open-webui curl -s http://host.docker.internal:11434/api/tags` returns JSON
+- [ ] App name: shows "Stocky AI" (not "Open WebUI")
+- [ ] Model name: shows "Stocky" in dropdown (not "qwen3:32b")
+- [ ] Custom entrypoint: `ls /mnt/ai-models/open-webui/custom-entrypoint.sh` exists
 
 ## Nginx
 

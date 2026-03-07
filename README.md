@@ -8,7 +8,7 @@ Open your browser and go to:
 
 **http://ai.local**
 
-That's it. Pick a model from the dropdown, type your question, and go.
+That's it. Type your question and Stocky will handle the rest.
 
 ## What You Can Do
 
@@ -39,9 +39,8 @@ No installation needed on your computer. If `ai.local` doesn't load, use `http:/
 ## First Time Setup
 
 1. Open http://ai.local
-2. Create your account (first user becomes admin)
-3. Pick **qwen3:32b** from the model dropdown
-4. Start chatting
+2. Ask your admin to create your account
+3. Log in and start chatting with Stocky
 
 ## Need Help?
 

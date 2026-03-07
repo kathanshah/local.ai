@@ -6,7 +6,7 @@ Server administration docs for the local.ai office server.
 
 | What | URL / Command |
 |------|---------------|
-| Open WebUI | http://ai.local |
+| Stocky AI (chat) | http://ai.local |
 | Ollama API | http://ai.local:11434 |
 | SSH | `ssh k-server@ai.local` |
 
@@ -16,6 +16,7 @@ Server administration docs for the local.ai office server.
 |-----|-------------|
 | [hardware.md](hardware.md) | Tested hardware and software configuration |
 | [setup.md](setup.md) | Setup phases, config files, and disk layout |
+| [rebuild.md](rebuild.md) | Full rebuild from scratch (step-by-step) |
 | [runbook.md](runbook.md) | Daily operations, maintenance, and troubleshooting |
 | [checklist.md](checklist.md) | Verification checklist for setup, reboots, and network changes |
 

@@ -206,8 +206,16 @@ sudo docker run -d --name open-webui --restart always \
   -v /mnt/ai-models/open-webui:/app/backend/data \
   --add-host=host.docker.internal:host-gateway \
   -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  -e WEBUI_NAME="Stocky AI" \
+  -e DEFAULT_MODELS="qwen3:32b" \
+  -e ENABLE_SIGNUP=false \
+  -e ENABLE_COMMUNITY_SHARING=false \
+  -e ENABLE_MESSAGE_RATING=false \
+  -e DEFAULT_USER_ROLE=user \
+  --entrypoint /app/backend/data/custom-entrypoint.sh \
   ghcr.io/open-webui/open-webui:main
 ```
+Note: The custom entrypoint patches out the "(Open WebUI)" name suffix. Model settings (system prompt, params, suggestions) are stored in the DB and persist across updates.
 
 ### Update Python environments
 ```bash

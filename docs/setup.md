@@ -25,6 +25,7 @@ What was done to configure this server and the current state of each phase.
 | 8 | Firewall (UFW) | Done | SSH (22), Ollama (11434 LAN + Docker), WebUI (80), mDNS (5353/udp) |
 | — | Hostname & mDNS | Done | hostname=ai, avahi re-enabled, docker0 excluded, UFW allows 5353/udp |
 | — | Nginx reverse proxy | Done | Port 80 → Open WebUI (3000), users access http://ai.local |
+| — | Branding (Stocky AI) | Done | App name=Stocky AI, model name=Stocky, custom system prompt, business suggestions, signup disabled |
 | 9 | BIOS XMP check | Pending | Check on next reboot: DEL/F2 → Memory settings → Enable XMP |
 | 10 | 256 GB RAM + 235B | Future | `ollama pull qwen3:235b-a22b` after RAM upgrade |
 
