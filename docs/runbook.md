@@ -125,11 +125,17 @@ sudo docker logs open-webui --tail 30      # Check logs
 sudo docker restart open-webui             # Restart
 ```
 
-### Open WebUI can't reach Ollama
+### Open WebUI can't reach Ollama / no models in dropdown
 ```bash
+# Test from inside the container
+sudo docker exec open-webui curl -s --max-time 5 http://host.docker.internal:11434/api/tags
+
+# If that times out, UFW is blocking Docker→Ollama
+sudo ufw allow from 172.17.0.0/16 to any port 11434 proto tcp comment "Docker containers to Ollama"
+
+# Also verify Ollama is bound to all interfaces
 grep OLLAMA_HOST /etc/systemd/system/ollama.service.d/override.conf
 # Should show: OLLAMA_HOST=0.0.0.0:11434
-curl http://localhost:11434/api/tags       # Test locally
 ```
 
 ### GPU not detected / low performance

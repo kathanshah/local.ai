@@ -120,7 +120,8 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 
 - [ ] UFW active: `sudo ufw status` = active
 - [ ] SSH: 22/tcp ALLOW
-- [ ] Ollama: 11434/tcp ALLOW from LAN subnet
+- [ ] Ollama LAN: 11434/tcp ALLOW from LAN subnet
+- [ ] Ollama Docker: 11434/tcp ALLOW from 172.17.0.0/16
 - [ ] HTTP: 80/tcp ALLOW
 - [ ] mDNS: 5353/udp ALLOW
 

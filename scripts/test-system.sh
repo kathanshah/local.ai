@@ -160,6 +160,14 @@ fi
 NGINX_STATE=$(systemctl is-active nginx 2>/dev/null)
 [[ "$NGINX_STATE" == "active" ]] && pass "Nginx reverse proxy: running" || fail "Nginx not running (ai.local won't work on port 80)"
 
+# Check Docker→Ollama connectivity
+DOCKER_OLLAMA=$(sudo docker exec open-webui curl -s --max-time 5 http://host.docker.internal:11434/api/tags 2>/dev/null)
+if echo "$DOCKER_OLLAMA" | grep -q "models"; then
+    pass "Docker→Ollama connectivity: OK"
+else
+    fail "Docker→Ollama blocked (check UFW rule for 172.17.0.0/16 → 11434)"
+fi
+
 # --- Python Environments ---
 echo ""
 echo "--- Python Environments ---"

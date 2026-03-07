@@ -28,8 +28,8 @@ update_firewall() {
     echo ""
     echo "Updating firewall for new subnet ${SUBNET}..."
 
-    # Remove old LAN-only Ollama rule (find the rule number)
-    RULE_NUM=$(sudo ufw status numbered 2>/dev/null | grep "11434" | grep -oP '^\[\s*\K\d+' | head -1)
+    # Remove old LAN-only Ollama rule (skip the Docker 172.17 rule)
+    RULE_NUM=$(sudo ufw status numbered 2>/dev/null | grep "11434" | grep -v "172.17" | grep -oP '^\[\s*\K\d+' | head -1)
     if [[ -n "$RULE_NUM" ]]; then
         echo "y" | sudo ufw delete $RULE_NUM 2>/dev/null
     fi
@@ -37,13 +37,18 @@ update_firewall() {
     # Add new LAN-only rule
     sudo ufw allow from "${SUBNET}" to any port 11434 proto tcp
 
+    # Ensure Docker containers can reach Ollama
+    if ! sudo ufw status | grep -q "172.17.0.0/16.*11434"; then
+        sudo ufw allow from 172.17.0.0/16 to any port 11434 proto tcp comment "Docker containers to Ollama"
+    fi
+
     # Ensure mDNS is allowed (for ai.local)
     if ! sudo ufw status | grep -q "5353/udp"; then
         sudo ufw allow 5353/udp comment "mDNS - ai.local name resolution"
     fi
 
     echo "Firewall updated. Ollama API now allows: ${SUBNET}"
-    sudo ufw status | grep -E "11434|3000|22|5353"
+    sudo ufw status | grep -E "11434|3000|22|5353|80"
 }
 
 if [[ "${1:-}" == "--wifi" ]]; then

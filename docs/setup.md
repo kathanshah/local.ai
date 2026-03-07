@@ -22,7 +22,7 @@ What was done to configure this server and the current state of each phase.
 | 7 | Open Interpreter | Done | Fix: pinned setuptools<81 for pkg_resources |
 | 7 | Qwen-Agent | Done | Fix: installed missing soundfile dependency |
 | 8 | Static IP | Done | 192.168.29.100/24, gateway .1, DNS 8.8.8.8/1.1.1.1 |
-| 8 | Firewall (UFW) | Done | SSH (22), Ollama (11434 LAN-only), WebUI (80), mDNS (5353/udp) |
+| 8 | Firewall (UFW) | Done | SSH (22), Ollama (11434 LAN + Docker), WebUI (80), mDNS (5353/udp) |
 | — | Hostname & mDNS | Done | hostname=ai, avahi re-enabled, docker0 excluded, UFW allows 5353/udp |
 | — | Nginx reverse proxy | Done | Port 80 → Open WebUI (3000), users access http://ai.local |
 | 9 | BIOS XMP check | Pending | Check on next reboot: DEL/F2 → Memory settings → Enable XMP |
@@ -37,6 +37,7 @@ What was done to configure this server and the current state of each phase.
 | Qwen-Agent import error | Missing soundfile dependency | `pip install soundfile` |
 | ai.local resolving to Docker IP (172.17.0.1) | Avahi broadcasting on docker0 | Added `deny-interfaces=docker0` to avahi-daemon.conf |
 | ai.local unreachable from other machines | UFW blocking mDNS multicast | `sudo ufw allow 5353/udp` |
+| Open WebUI can't see models | UFW blocking Docker→Ollama (172.17.0.1→11434) | `sudo ufw allow from 172.17.0.0/16 to any port 11434 proto tcp` |
 
 ## Disk Layout
 
