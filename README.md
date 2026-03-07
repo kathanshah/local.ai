@@ -33,19 +33,19 @@ That's it. Type your question and Stocky will handle the rest.
 
 | What | Limit | In Plain English |
 |------|-------|-----------------|
-| Input + output combined | ~32,000 tokens | About **50 pages** of text (~24,000 words) |
+| Input + output combined | ~16,000 tokens | About **25 pages** of text (~12,000 words) |
 | Single file upload | 100 MB max | Most documents, spreadsheets, and PDFs are fine |
 | Best sweet spot | Up to ~10 pages | Fastest and most accurate responses |
-| Very long documents | 20-50 pages | Works, but slower and may miss details at the edges |
-| Beyond 50 pages | Split it up | Break into sections and ask about each part separately |
+| Long documents | 10-25 pages | Works, but may miss details toward the end |
+| Beyond 25 pages | Split it up | Break into sections and ask about each part separately |
 
-**Rule of thumb:** 1 page of text ~ 500 words ~ 650 tokens. A typical email is ~200 tokens. A 10-page contract is ~6,500 tokens.
+**Rule of thumb:** 1 page of text ~ 500 words ~ 650 tokens. A typical email is ~200 tokens. A 10-page bank statement or contract is ~6,500 tokens — fits easily.
 
 ## Response Speed
 
 Stocky runs on a dedicated GPU and responds at about **60 tokens per second** — roughly the speed of fast human reading. Short answers (emails, summaries) come back in 1-3 seconds. Longer outputs (full reports, detailed analysis) may take 10-30 seconds.
 
-Only one person's request is processed at a time. If someone else is using Stocky, your request will queue and start when theirs finishes.
+Two people can use Stocky at the same time. If a third person sends a request, it queues and starts when one of the first two finishes — usually just a few seconds.
 
 ## Privacy
 

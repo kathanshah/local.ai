@@ -206,6 +206,8 @@ sudo tee /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
 [Service]
 Environment="OLLAMA_MODELS=/mnt/ai-models/ollama"
 Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_NUM_PARALLEL=2"
+Environment="OLLAMA_MAX_LOADED_MODELS=1"
 LimitMEMLOCK=infinity
 LimitNOFILE=1048576
 EOF

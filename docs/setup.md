@@ -16,7 +16,7 @@ What was done to configure this server and the current state of each phase.
 | 4 | Journald cap | Done | 500M max |
 | 4 | NVIDIA update block | Done | nvidia-/libnvidia-/cuda- blacklisted from unattended-upgrades |
 | 5 | GPU optimization | Done | Persistence on, clocks locked 2407-3090/14001 MHz, boot service |
-| 6 | Ollama | Done | v0.17.7, models on 2nd SSD, memlock=infinity, host=0.0.0.0 |
+| 6 | Ollama | Done | v0.17.7, models on 2nd SSD, memlock=infinity, host=0.0.0.0, 2 parallel |
 | 6 | Qwen3-32B | Done | 20 GB, loaded in VRAM, ~16.5 tok/s |
 | 7 | Open WebUI | Done | Docker, port 80 via nginx reverse proxy, healthy |
 | 7 | Open Interpreter | Done | Fix: pinned setuptools<81 for pkg_resources |
@@ -54,7 +54,7 @@ What was done to configure this server and the current state of each phase.
 
 | File | Purpose |
 |------|---------|
-| `/etc/systemd/system/ollama.service.d/override.conf` | Ollama: model dir, host binding, ulimits |
+| `/etc/systemd/system/ollama.service.d/override.conf` | Ollama: model dir, host binding, ulimits, 2 parallel |
 | `/etc/sysctl.d/99-ai-server.conf` | Kernel tuning (swappiness, max_map_count, shmmax, etc.) |
 | `/etc/security/limits.d/99-ai-inference.conf` | User ulimits (memlock, nofile) |
 | `/etc/systemd/system/nvidia-clock-setup.service` | GPU clock lock on boot |

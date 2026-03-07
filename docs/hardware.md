@@ -31,7 +31,7 @@ This documents the exact hardware and software this setup was built and tested o
 
 | Model | Quantization | Size on Disk | VRAM Usage | Tokens/sec | Fits in VRAM |
 |-------|-------------|-------------|------------|------------|-------------|
-| Qwen3-32B | Q4_K_M | 20 GB | ~29 GB | ~16.5 tok/s | Yes (fully) |
+| Qwen3-32B | Q4_K_M | 20 GB | ~29 GB | ~60 tok/s | Yes (fully), 2 parallel, 16K context |
 
 ### Planned
 
