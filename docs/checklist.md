@@ -55,9 +55,13 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 
 - [ ] cups: `systemctl is-active cups` = inactive
 - [ ] bluetooth: `systemctl is-active bluetooth` = inactive
-- [ ] snapd: `systemctl is-active snapd` = inactive
 - [ ] thermald: `systemctl is-active thermald` = inactive
 - [ ] sleep: `systemctl is-enabled sleep.target` = masked
+
+## Snap (required for Firefox & Snap Store)
+
+- [ ] snapd.apparmor: `systemctl is-active snapd.apparmor` = active
+- [ ] Firefox launches from desktop
 
 ## Services — Should be RUNNING
 
@@ -76,8 +80,8 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 ## Hostname & mDNS
 
 - [ ] Hostname: `hostname` = ai
-- [ ] mDNS resolves: `ping -c1 ai.local` responds with LAN IP (not 172.17.x.x)
-- [ ] Avahi excludes Docker: `grep deny-interfaces /etc/avahi/avahi-daemon.conf` shows docker0
+- [ ] mDNS resolves: `ping -c1 -4 ai.local` responds with 192.168.29.100 (not 172.x.x.x)
+- [ ] Avahi allow-list: `grep allow-interfaces /etc/avahi/avahi-daemon.conf` shows real NICs only
 - [ ] UFW mDNS rule: `sudo ufw status | grep 5353` shows 5353/udp ALLOW
 - [ ] WebUI via hostname: `curl -s http://ai.local` responds
 - [ ] Ollama via hostname: `curl -s http://ai.local:11434/api/tags` responds

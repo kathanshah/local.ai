@@ -166,9 +166,12 @@ sudo systemctl status avahi-daemon
 sudo ufw status | grep 5353               # Must show 5353/udp ALLOW
 hostname                                   # Must show: ai
 
-# Check avahi isn't broadcasting Docker IP
-avahi-resolve -n ai.local                  # Should show LAN IP, not 172.17.x.x
-grep deny-interfaces /etc/avahi/avahi-daemon.conf  # Should show docker0
+# Check avahi is only advertising on real interfaces (not Docker bridges)
+grep allow-interfaces /etc/avahi/avahi-daemon.conf
+# Should show: allow-interfaces=wlp133s0f0,enp131s0,enp132s0
+
+# Verify correct resolution
+ping -c1 -4 ai.local                      # Should show 192.168.29.100, not 172.x.x.x
 
 # Restart if needed
 sudo systemctl restart avahi-daemon
@@ -183,8 +186,19 @@ sudo systemctl restart avahi-daemon
 ### After reboot, GPU clocks not locked
 ```bash
 sudo systemctl status nvidia-clock-setup
+# If failed due to dependency on nvidia-persistenced:
+sudo nvidia-smi -pm 1                     # Enable persistence mode first
 sudo systemctl restart nvidia-clock-setup
 nvidia-smi --query-gpu=clocks.current.graphics,clocks.current.memory --format=csv
+```
+
+### Firefox or Snap Store won't launch
+```bash
+# Snap apps need snapd.apparmor — check if it's enabled
+systemctl is-active snapd.apparmor
+# If inactive/disabled:
+sudo systemctl enable --now snapd.apparmor
+# Then try launching the app again
 ```
 
 ---

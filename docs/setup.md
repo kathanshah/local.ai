@@ -7,7 +7,7 @@ What was done to configure this server and the current state of each phase.
 | Phase | What | Status | Notes |
 |-------|------|--------|-------|
 | 1 | Install packages | Done | git, build-essential, cmake, pip, docker, ssh, htop, btop, etc. |
-| 2 | Disable services | Done | cups, bluetooth, snapd, thermald disabled; sleep masked; avahi re-enabled for mDNS |
+| 2 | Disable services | Done | cups, bluetooth, thermald disabled; sleep masked; snapd kept for Firefox/Snap Store but snapd.apparmor re-enabled; avahi re-enabled for mDNS |
 | 2 | CPU performance mode | Done | powerprofilesctl=performance, EPP=performance, turbo on, boot service created |
 | 3 | Mount 2nd SSD | Done | UUID-based fstab, /mnt/ai-models, chmod 755 (fix: ollama user needs traverse) |
 | 3 | noatime | Done | Applied to /, /home, /mnt/ai-models |
@@ -23,7 +23,7 @@ What was done to configure this server and the current state of each phase.
 | 7 | Qwen-Agent | Done | Fix: installed missing soundfile dependency |
 | 8 | Static IP | Done | 192.168.29.100/24, gateway .1, DNS 8.8.8.8/1.1.1.1 |
 | 8 | Firewall (UFW) | Done | SSH (22), Ollama (11434 LAN + Docker), WebUI (80), mDNS (5353/udp) |
-| — | Hostname & mDNS | Done | hostname=ai, avahi re-enabled, docker0 excluded, UFW allows 5353/udp |
+| — | Hostname & mDNS | Done | hostname=ai, avahi re-enabled, allow-interfaces whitelist (real NICs only), UFW allows 5353/udp |
 | — | Nginx reverse proxy | Done | Port 80 → Open WebUI (3000), users access http://ai.local |
 | — | Branding (Stocky AI) | Done | App name=Stocky AI, model name=Stocky, custom system prompt, business suggestions, signup disabled |
 | — | Web search (SearXNG) | Done | Self-hosted search via Docker, private, no API keys needed |
@@ -38,9 +38,11 @@ What was done to configure this server and the current state of each phase.
 | Ollama permission denied on /mnt/ai-models | Mount point had 700 permissions | `sudo chmod 755 /mnt/ai-models` |
 | Open Interpreter import error | setuptools v82 dropped pkg_resources | `pip install "setuptools<81"` |
 | Qwen-Agent import error | Missing soundfile dependency | `pip install soundfile` |
-| ai.local resolving to Docker IP (172.17.0.1) | Avahi broadcasting on docker0 | Added `deny-interfaces=docker0` to avahi-daemon.conf |
+| ai.local resolving to Docker IP (172.17.0.1) | Avahi broadcasting on docker0 | Initially added `deny-interfaces=docker0`; later switched to `allow-interfaces=wlp133s0f0,enp131s0,enp132s0` (whitelist real NICs) because ai-net bridge (br-*) also leaked |
 | ai.local unreachable from other machines | UFW blocking mDNS multicast | `sudo ufw allow 5353/udp` |
 | Open WebUI can't see models | UFW blocking Docker→Ollama (172.17.0.1→11434) | `sudo ufw allow from 172.17.0.0/16 to any port 11434 proto tcp` |
+| Firefox & Snap Store won't launch after reboot | `snapd.apparmor` was disabled when snapd was disabled; snap apps need AppArmor profiles | `sudo systemctl enable --now snapd.apparmor` |
+| nvidia-clock-setup fails on boot | Dependency on nvidia-persistenced which initially fails with device permission error | `sudo nvidia-smi -pm 1` manually; service recovers on next boot after persistenced starts |
 
 ## Disk Layout
 
@@ -65,6 +67,6 @@ What was done to configure this server and the current state of each phase.
 | `/etc/apt/apt.conf.d/51unattended-upgrades-nvidia` | NVIDIA auto-update block |
 | `/etc/systemd/journald.conf.d/size.conf` | Journal size cap (500M) |
 | `/etc/nginx/sites-available/ai-server` | Nginx reverse proxy (port 80 → Open WebUI on 3000) |
-| `/etc/avahi/avahi-daemon.conf` | mDNS config (docker0 interface excluded) |
+| `/etc/avahi/avahi-daemon.conf` | mDNS config (allow-interfaces whitelist: real NICs only, no Docker) |
 | `/etc/fstab` | 2nd SSD mount (UUID-based, noatime) |
 | `/etc/hostname` | Server hostname: ai |

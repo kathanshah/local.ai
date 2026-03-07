@@ -37,9 +37,15 @@ sudo usermod -aG docker $USER
 ## Phase 2: Disable Unnecessary Services
 
 ```bash
-sudo systemctl disable --now cups bluetooth snapd thermald
+sudo systemctl disable --now cups bluetooth thermald
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 ```
+
+> **Note:** Do NOT disable `snapd` if you use Firefox or Snap Store — they are snap packages
+> and require `snapd.apparmor` to launch. If snapd was disabled, re-enable AppArmor:
+> ```bash
+> sudo systemctl enable --now snapd.apparmor
+> ```
 
 ### CPU Performance Mode
 
@@ -178,9 +184,12 @@ sudo tee /etc/systemd/system/nvidia-clock-setup.service << 'EOF'
 [Unit]
 Description=Lock NVIDIA GPU clocks for inference
 After=nvidia-persistenced.service
+Requires=nvidia-persistenced.service
 
 [Service]
 Type=oneshot
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/bin/nvidia-smi -pm 1
 ExecStart=/usr/bin/nvidia-smi --lock-gpu-clocks=2407,3090
 ExecStart=/usr/bin/nvidia-smi --lock-memory-clocks=14001
 RemainAfterExit=yes
@@ -190,6 +199,9 @@ WantedBy=multi-user.target
 EOF
 sudo systemctl enable nvidia-clock-setup
 ```
+
+> The `ExecStartPre=/bin/sleep 5` gives the GPU driver time to initialize after boot.
+> `ExecStart=nvidia-smi -pm 1` ensures persistence mode is on before locking clocks.
 
 ---
 
@@ -291,10 +303,17 @@ sudo sed -i 's/127.0.1.1.*/127.0.1.1 ai/' /etc/hosts
 ### Avahi (mDNS for ai.local)
 
 ```bash
-# Exclude Docker interface from mDNS
-sudo sed -i 's/#deny-interfaces=.*/deny-interfaces=docker0/' /etc/avahi/avahi-daemon.conf
+# Whitelist only real network interfaces (not Docker bridges)
+# Use allow-interfaces instead of deny-interfaces — Docker creates multiple bridges
+# (docker0, br-*, veth*) and deny-list can't keep up with dynamic names
+sudo sed -i 's/#allow-interfaces=.*/allow-interfaces=wlp133s0f0,enp131s0,enp132s0/' /etc/avahi/avahi-daemon.conf
 sudo systemctl enable --now avahi-daemon
 ```
+
+> **Why allow-interfaces instead of deny-interfaces?** Docker creates bridge interfaces
+> with unpredictable names (e.g., `br-82ce474a667a` for `ai-net`). A deny-list only
+> blocking `docker0` misses these, causing `ai.local` to resolve to a Docker IP
+> (172.18.0.1) instead of the LAN IP (192.168.29.100). Whitelisting real NICs is robust.
 
 ### Static IP (adjust for your network)
 
