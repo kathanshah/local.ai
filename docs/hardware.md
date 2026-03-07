@@ -24,14 +24,15 @@ This documents the exact hardware and software this setup was built and tested o
 | Ollama | 0.17.7 | LLM inference server |
 | Open WebUI | latest (Docker) | `ghcr.io/open-webui/open-webui:main` |
 | Nginx | 1.24.0 | Reverse proxy (port 80 → Open WebUI) |
-| Docker | Community Edition | For Open WebUI container |
+| Docker | Community Edition | For Open WebUI and SearXNG containers |
+| SearXNG | latest (Docker) | Self-hosted search engine for private web search |
 | Python | 3.x (system) | Venvs for Open Interpreter and Qwen-Agent |
 
 ## Models Tested
 
 | Model | Quantization | Size on Disk | VRAM Usage | Tokens/sec | Fits in VRAM |
 |-------|-------------|-------------|------------|------------|-------------|
-| Qwen3-32B | Q4_K_M | 20 GB | ~29 GB | ~60 tok/s | Yes (fully), 2 parallel, 16K context |
+| Qwen3-32B | Q4_K_M | 20 GB | ~29 GB | ~60 tok/s | Yes (fully), 1 parallel 32K / 2 parallel 16K |
 
 ### Planned
 

@@ -28,6 +28,12 @@ sudo cp /etc/avahi/avahi-daemon.conf "$BACKUP_DIR/" 2>/dev/null
 sudo cp /etc/hostname "$BACKUP_DIR/" 2>/dev/null
 sudo cp /etc/hosts "$BACKUP_DIR/" 2>/dev/null
 
+# SearXNG
+sudo cp -r /mnt/ai-models/searxng "$BACKUP_DIR/searxng/" 2>/dev/null
+
+# Open WebUI custom entrypoint
+sudo cp /mnt/ai-models/open-webui/custom-entrypoint.sh "$BACKUP_DIR/" 2>/dev/null
+
 # Network
 nmcli con show > "$BACKUP_DIR/nmcli-connections.txt" 2>/dev/null
 sudo ufw status verbose > "$BACKUP_DIR/ufw-rules.txt" 2>/dev/null

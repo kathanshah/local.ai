@@ -206,7 +206,7 @@ sudo tee /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
 [Service]
 Environment="OLLAMA_MODELS=/mnt/ai-models/ollama"
 Environment="OLLAMA_HOST=0.0.0.0:11434"
-Environment="OLLAMA_NUM_PARALLEL=2"
+Environment="OLLAMA_NUM_PARALLEL=1"
 Environment="OLLAMA_MAX_LOADED_MODELS=1"
 LimitMEMLOCK=infinity
 LimitNOFILE=1048576
@@ -234,10 +234,16 @@ SCRIPT
 chmod +x /mnt/ai-models/open-webui/custom-entrypoint.sh
 ```
 
+Create Docker network for container-to-container DNS:
+```bash
+sudo docker network create ai-net
+```
+
 Run the container:
 ```bash
 sudo docker run -d --name open-webui --restart always \
   -p 3000:8080 \
+  --network ai-net \
   -v /mnt/ai-models/open-webui:/app/backend/data \
   --add-host=host.docker.internal:host-gateway \
   -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
@@ -247,6 +253,10 @@ sudo docker run -d --name open-webui --restart always \
   -e ENABLE_COMMUNITY_SHARING=false \
   -e ENABLE_MESSAGE_RATING=false \
   -e DEFAULT_USER_ROLE=user \
+  -e ENABLE_RAG_WEB_SEARCH=true \
+  -e RAG_WEB_SEARCH_ENGINE=searxng \
+  -e SEARXNG_QUERY_URL="http://searxng:8080/search?q=<query>&format=json" \
+  -e ENABLE_SEARCH_QUERY_GENERATION=true \
   --entrypoint /app/backend/data/custom-entrypoint.sh \
   ghcr.io/open-webui/open-webui:main
 ```
@@ -301,7 +311,8 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow 22/tcp                                                    # SSH
 sudo ufw allow from 192.168.29.0/24 to any port 11434 proto tcp         # Ollama (LAN)
-sudo ufw allow from 172.17.0.0/16 to any port 11434 proto tcp           # Ollama (Docker)
+sudo ufw allow from 172.17.0.0/16 to any port 11434 proto tcp           # Ollama (Docker bridge)
+sudo ufw allow from 172.18.0.0/16 to any port 11434 proto tcp           # Ollama (Docker ai-net)
 sudo ufw allow 80/tcp comment "Open WebUI via ai.local"                  # HTTP
 sudo ufw allow 5353/udp comment "mDNS - ai.local name resolution"       # mDNS
 sudo ufw enable
@@ -405,7 +416,36 @@ curl -s -X POST http://localhost:3000/api/v1/models/model/update \
 
 ---
 
-## Phase 10: Verify
+## Phase 10: SearXNG (Web Search)
+
+Deploy a self-hosted search engine for private web search:
+```bash
+sudo mkdir -p /mnt/ai-models/searxng
+sudo docker run -d --name searxng --restart always \
+  -p 8888:8080 \
+  --network ai-net \
+  -v /mnt/ai-models/searxng:/etc/searxng \
+  -e SEARXNG_BASE_URL=http://localhost:8888 \
+  searxng/searxng:latest
+```
+
+Wait for SearXNG to generate its config, then enable JSON output:
+```bash
+sleep 5
+# Add JSON format support (required for Open WebUI integration)
+sudo sed -i '/formats:/,/^[^ ]/{/- html/a\    - json
+}' /mnt/ai-models/searxng/settings.yml
+sudo docker restart searxng
+```
+
+Verify:
+```bash
+curl -s "http://localhost:8888/search?q=test&format=json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'OK — {len(d.get(\"results\",[]))} results')"
+```
+
+---
+
+## Phase 11: Verify
 
 ```bash
 bash scripts/test-system.sh    # Should show 41 passed, 0 failed

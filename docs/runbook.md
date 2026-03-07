@@ -203,6 +203,7 @@ sudo docker pull ghcr.io/open-webui/open-webui:main
 sudo docker stop open-webui && sudo docker rm open-webui
 sudo docker run -d --name open-webui --restart always \
   -p 3000:8080 \
+  --network ai-net \
   -v /mnt/ai-models/open-webui:/app/backend/data \
   --add-host=host.docker.internal:host-gateway \
   -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
@@ -212,10 +213,34 @@ sudo docker run -d --name open-webui --restart always \
   -e ENABLE_COMMUNITY_SHARING=false \
   -e ENABLE_MESSAGE_RATING=false \
   -e DEFAULT_USER_ROLE=user \
+  -e ENABLE_RAG_WEB_SEARCH=true \
+  -e RAG_WEB_SEARCH_ENGINE=searxng \
+  -e SEARXNG_QUERY_URL="http://searxng:8080/search?q=<query>&format=json" \
+  -e ENABLE_SEARCH_QUERY_GENERATION=true \
   --entrypoint /app/backend/data/custom-entrypoint.sh \
   ghcr.io/open-webui/open-webui:main
 ```
-Note: The custom entrypoint patches out the "(Open WebUI)" name suffix. Model settings (system prompt, params, suggestions) are stored in the DB and persist across updates.
+Note: The custom entrypoint patches out the "(Open WebUI)" name suffix. Model settings (system prompt, params, suggestions) are stored in the DB and persist across updates. The `--network ai-net` enables container-to-container DNS for SearXNG.
+
+### Update SearXNG
+```bash
+sudo docker pull searxng/searxng:latest
+sudo docker stop searxng && sudo docker rm searxng
+sudo docker run -d --name searxng --restart always \
+  -p 8888:8080 \
+  --network ai-net \
+  -v /mnt/ai-models/searxng:/etc/searxng \
+  -e SEARXNG_BASE_URL=http://localhost:8888 \
+  searxng/searxng:latest
+```
+
+### Toggle parallel mode
+```bash
+bash scripts/toggle-parallel.sh
+# Switches between:
+#   1 parallel, 32K context (default — best for long documents)
+#   2 parallel, 16K context (best when multiple users are active)
+```
 
 ### Update Python environments
 ```bash

@@ -68,6 +68,11 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 - [ ] nvidia-persistenced: `systemctl is-active nvidia-persistenced` = active
 - [ ] avahi-daemon: `systemctl is-active avahi-daemon` = active
 
+## Docker Containers — Should be RUNNING
+
+- [ ] open-webui: `sudo docker ps | grep open-webui` shows Up (healthy)
+- [ ] searxng: `sudo docker ps | grep searxng` shows Up
+
 ## Hostname & mDNS
 
 - [ ] Hostname: `hostname` = ai
@@ -95,6 +100,15 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 - [ ] App name: shows "Stocky AI" (not "Open WebUI")
 - [ ] Model name: shows "Stocky" in dropdown (not "qwen3:32b")
 - [ ] Custom entrypoint: `ls /mnt/ai-models/open-webui/custom-entrypoint.sh` exists
+- [ ] On `ai-net` network: `sudo docker inspect open-webui --format '{{json .NetworkSettings.Networks}}'` shows ai-net
+
+## SearXNG (Web Search)
+
+- [ ] Container running: `sudo docker ps | grep searxng` shows Up
+- [ ] On `ai-net` network: `sudo docker inspect searxng --format '{{json .NetworkSettings.Networks}}'` shows ai-net
+- [ ] JSON format enabled: `grep -A2 formats /mnt/ai-models/searxng/settings.yml` includes json
+- [ ] Responds: `curl -s "http://localhost:8888/search?q=test&format=json" | python3 -c "import sys,json; print('OK' if json.load(sys.stdin).get('results') is not None else 'FAIL')"`
+- [ ] Open WebUI can reach it: `sudo docker exec open-webui curl -s --max-time 5 "http://searxng:8080/search?q=test&format=json" | head -c 100`
 
 ## Nginx
 
@@ -124,7 +138,8 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 - [ ] UFW active: `sudo ufw status` = active
 - [ ] SSH: 22/tcp ALLOW
 - [ ] Ollama LAN: 11434/tcp ALLOW from LAN subnet
-- [ ] Ollama Docker: 11434/tcp ALLOW from 172.17.0.0/16
+- [ ] Ollama Docker bridge: 11434/tcp ALLOW from 172.17.0.0/16
+- [ ] Ollama Docker ai-net: 11434/tcp ALLOW from 172.18.0.0/16
 - [ ] HTTP: 80/tcp ALLOW
 - [ ] mDNS: 5353/udp ALLOW
 
@@ -163,4 +178,5 @@ Run `bash scripts/test-system.sh` and specifically verify:
 - [ ] 2nd SSD mounted (fstab)
 - [ ] Ollama running with correct config
 - [ ] Open WebUI container auto-started
+- [ ] SearXNG container auto-started
 - [ ] Nginx serving on port 80

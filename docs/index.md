@@ -31,6 +31,7 @@ All scripts are in [`../scripts/`](../scripts/). On the server they're also at `
 | [service-status.sh](../scripts/service-status.sh) | Quick dashboard — GPU, memory, disk, services | `bash scripts/service-status.sh` |
 | [change-network.sh](../scripts/change-network.sh) | Switch WiFi/Ethernet/DHCP + auto-update firewall | `bash scripts/change-network.sh` |
 | [backup-config.sh](../scripts/backup-config.sh) | Backup all config files to 2nd SSD | `bash scripts/backup-config.sh` |
+| [toggle-parallel.sh](../scripts/toggle-parallel.sh) | Switch between 1×32K and 2×16K parallel modes | `bash scripts/toggle-parallel.sh` |
 
 ## Quick Commands
 

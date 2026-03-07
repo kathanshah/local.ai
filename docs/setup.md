@@ -26,6 +26,8 @@ What was done to configure this server and the current state of each phase.
 | — | Hostname & mDNS | Done | hostname=ai, avahi re-enabled, docker0 excluded, UFW allows 5353/udp |
 | — | Nginx reverse proxy | Done | Port 80 → Open WebUI (3000), users access http://ai.local |
 | — | Branding (Stocky AI) | Done | App name=Stocky AI, model name=Stocky, custom system prompt, business suggestions, signup disabled |
+| — | Web search (SearXNG) | Done | Self-hosted search via Docker, private, no API keys needed |
+| — | Toggle parallel script | Done | `bash scripts/toggle-parallel.sh` switches between 1×32K and 2×16K |
 | 9 | BIOS XMP check | Pending | Check on next reboot: DEL/F2 → Memory settings → Enable XMP |
 | 10 | 256 GB RAM + 235B | Future | `ollama pull qwen3:235b-a22b` after RAM upgrade |
 
