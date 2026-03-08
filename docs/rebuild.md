@@ -464,7 +464,92 @@ curl -s "http://localhost:8888/search?q=test&format=json" | python3 -c "import s
 
 ---
 
-## Phase 11: Verify
+## Phase 11: Jupyter Code Interpreter
+
+Deploy a Jupyter server so Stocky can execute Python code and generate files (Excel, CSV, charts, etc.):
+
+```bash
+sudo mkdir -p /mnt/ai-models/jupyter-data
+sudo chown 1000:100 /mnt/ai-models/jupyter-data
+```
+
+Create a requirements file (persisted on the volume so packages auto-install on restart):
+```bash
+cat > /mnt/ai-models/jupyter-data/requirements.txt << 'EOF'
+openpyxl
+xlsxwriter
+pandas
+matplotlib
+EOF
+```
+
+Create startup script:
+```bash
+cat > /mnt/ai-models/jupyter-data/.start.sh << 'SCRIPT'
+#!/bin/bash
+pip install -q -r /home/jovyan/work/requirements.txt 2>/dev/null
+exec start-notebook.sh --NotebookApp.token="${JUPYTER_TOKEN}"
+SCRIPT
+chmod +x /mnt/ai-models/jupyter-data/.start.sh
+sudo chown 1000:100 /mnt/ai-models/jupyter-data/.start.sh
+```
+
+Run the container (bound to localhost only — accessed via Docker DNS, not LAN):
+```bash
+sudo docker run -d --name jupyter --restart always \
+  --network ai-net \
+  -p 127.0.0.1:8889:8888 \
+  -v /mnt/ai-models/jupyter-data:/home/jovyan/work \
+  -e JUPYTER_TOKEN=stocky-jupyter-token \
+  jupyter/minimal-notebook:latest \
+  bash /home/jovyan/work/.start.sh
+```
+
+> **Why the startup script?** Packages installed via `docker exec pip install` are lost
+> when the container restarts. The startup script reads `requirements.txt` from the
+> persistent volume and installs packages on every boot. To add new packages, just edit
+> `/mnt/ai-models/jupyter-data/requirements.txt` and restart the container.
+
+Configure Open WebUI to use Jupyter (via admin API):
+```bash
+TOKEN=$(curl -s http://localhost:3000/api/v1/auths/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"YOUR_EMAIL","password":"YOUR_PASSWORD"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+curl -s -X POST http://localhost:3000/api/v1/configs/code_execution \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ENABLE_CODE_EXECUTION": true,
+    "CODE_EXECUTION_ENGINE": "jupyter",
+    "CODE_EXECUTION_JUPYTER_URL": "http://jupyter:8888",
+    "CODE_EXECUTION_JUPYTER_AUTH": "token",
+    "CODE_EXECUTION_JUPYTER_AUTH_TOKEN": "stocky-jupyter-token",
+    "CODE_EXECUTION_JUPYTER_AUTH_PASSWORD": "",
+    "CODE_EXECUTION_JUPYTER_TIMEOUT": 60,
+    "ENABLE_CODE_INTERPRETER": true,
+    "CODE_INTERPRETER_ENGINE": "jupyter",
+    "CODE_INTERPRETER_PROMPT_TEMPLATE": "",
+    "CODE_INTERPRETER_JUPYTER_URL": "http://jupyter:8888",
+    "CODE_INTERPRETER_JUPYTER_AUTH": "token",
+    "CODE_INTERPRETER_JUPYTER_AUTH_TOKEN": "stocky-jupyter-token",
+    "CODE_INTERPRETER_JUPYTER_AUTH_PASSWORD": "",
+    "CODE_INTERPRETER_JUPYTER_TIMEOUT": 60
+  }'
+```
+
+> You can also configure this in the Open WebUI admin panel: **Settings > Admin > Code Execution** — set engine to "jupyter", URL to `http://jupyter:8888`, auth to "token", and token to `stocky-jupyter-token`.
+
+Verify:
+```bash
+# Test from Open WebUI container
+sudo docker exec open-webui curl -s --max-time 5 "http://jupyter:8888/api?token=stocky-jupyter-token"
+# Should return: {"version": "..."}
+```
+
+---
+
+## Phase 12: Verify
 
 ```bash
 bash scripts/test-system.sh    # Should show 41 passed, 0 failed

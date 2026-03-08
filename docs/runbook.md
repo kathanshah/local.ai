@@ -236,6 +236,21 @@ sudo docker run -d --name open-webui --restart always \
 ```
 Note: The custom entrypoint patches out the "(Open WebUI)" name suffix. Model settings (system prompt, params, suggestions) are stored in the DB and persist across updates. The `--network ai-net` enables container-to-container DNS for SearXNG.
 
+### Update Jupyter
+```bash
+sudo docker pull jupyter/minimal-notebook:latest
+sudo docker stop jupyter && sudo docker rm jupyter
+sudo docker run -d --name jupyter --restart always \
+  --network ai-net \
+  -p 127.0.0.1:8889:8888 \
+  -v /mnt/ai-models/jupyter-data:/home/jovyan/work \
+  -e JUPYTER_TOKEN=stocky-jupyter-token \
+  jupyter/minimal-notebook:latest \
+  bash /home/jovyan/work/.start.sh
+```
+Packages auto-install from `/mnt/ai-models/jupyter-data/requirements.txt` on startup.
+To add new packages, edit that file and restart: `sudo docker restart jupyter`
+
 ### Update SearXNG
 ```bash
 sudo docker pull searxng/searxng:latest

@@ -15,11 +15,13 @@ User browser → http://ai.local (port 80)
   → Nginx reverse proxy → Open WebUI (Docker, port 3000)
     → Ollama API (systemd service, port 11434) → Qwen3-32B on GPU
   → SearXNG (Docker, port 8888 on ai-net) for web search
+  → Jupyter (Docker, port 8889 on ai-net) for code execution + file generation
 ```
 
 - **Ollama**: systemd service, models stored on 2nd SSD at `/mnt/ai-models/ollama/`
 - **Open WebUI**: Docker container on `ai-net` network, data at `/mnt/ai-models/open-webui/`
 - **SearXNG**: Docker container on `ai-net` network, config at `/mnt/ai-models/searxng/`
+- **Jupyter**: Docker container on `ai-net` network, work dir at `/mnt/ai-models/jupyter-data/`
 - **Nginx**: reverse proxy, config at `/etc/nginx/sites-available/ai-server`
 - Ollama config override: `/etc/systemd/system/ollama.service.d/override.conf`
 
@@ -53,6 +55,6 @@ All in `scripts/`. Run from repo root with `bash scripts/<name>.sh`.
 - Model is branded as "Stocky" in Open WebUI with a custom system prompt
 - NVIDIA drivers are blocked from auto-updates (see `/etc/apt/apt.conf.d/51unattended-upgrades-nvidia`)
 - GPU clocks locked via `nvidia-clock-setup.service`, CPU pinned to performance mode
-- Docker network `ai-net` enables container-to-container DNS (Open WebUI ↔ SearXNG)
+- Docker network `ai-net` enables container-to-container DNS (Open WebUI ↔ SearXNG ↔ Jupyter)
 - UFW firewall allows: SSH (22), HTTP (80), Ollama (11434 from LAN + Docker subnets), mDNS (5353/udp)
 - Future plan: 256 GB RAM upgrade → Qwen3-235B-A22B model

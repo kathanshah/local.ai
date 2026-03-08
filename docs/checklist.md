@@ -76,6 +76,7 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 
 - [ ] open-webui: `sudo docker ps | grep open-webui` shows Up (healthy)
 - [ ] searxng: `sudo docker ps | grep searxng` shows Up
+- [ ] jupyter: `sudo docker ps | grep jupyter` shows Up
 
 ## Hostname & mDNS
 
@@ -105,6 +106,15 @@ Use after initial setup, reboots, or major changes. For automated checks run `ba
 - [ ] Model name: shows "Stocky" in dropdown (not "qwen3:32b")
 - [ ] Custom entrypoint: `ls /mnt/ai-models/open-webui/custom-entrypoint.sh` exists
 - [ ] On `ai-net` network: `sudo docker inspect open-webui --format '{{json .NetworkSettings.Networks}}'` shows ai-net
+
+## Jupyter (Code Interpreter)
+
+- [ ] Container running: `sudo docker ps | grep jupyter` shows Up
+- [ ] On `ai-net` network: `sudo docker inspect jupyter --format '{{json .NetworkSettings.Networks}}'` shows ai-net
+- [ ] Open WebUI can reach it: `sudo docker exec open-webui curl -s --max-time 5 "http://jupyter:8888/api?token=stocky-jupyter-token"` returns JSON
+- [ ] Excel libs installed: `sudo docker exec jupyter python3 -c "import openpyxl, pandas; print('OK')"`
+- [ ] Work dir writable: `sudo docker exec jupyter touch /home/jovyan/work/.test && echo OK`
+- [ ] Code execution config: Open WebUI Admin > Settings > Code Execution shows engine=jupyter
 
 ## SearXNG (Web Search)
 
@@ -183,4 +193,5 @@ Run `bash scripts/test-system.sh` and specifically verify:
 - [ ] Ollama running with correct config
 - [ ] Open WebUI container auto-started
 - [ ] SearXNG container auto-started
+- [ ] Jupyter container auto-started
 - [ ] Nginx serving on port 80

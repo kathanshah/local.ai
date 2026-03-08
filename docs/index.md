@@ -8,6 +8,7 @@ Server administration docs for the local.ai office server.
 |------|---------------|
 | Stocky AI (chat) | http://ai.local |
 | Ollama API | http://ai.local:11434 |
+| Jupyter (code interpreter) | http://localhost:8889 (localhost only, token: `stocky-jupyter-token`) |
 | SSH | `ssh k-server@ai.local` |
 
 ## Documentation
@@ -19,6 +20,8 @@ Server administration docs for the local.ai office server.
 | [rebuild.md](rebuild.md) | Full rebuild from scratch (step-by-step) |
 | [runbook.md](runbook.md) | Daily operations, maintenance, and troubleshooting |
 | [checklist.md](checklist.md) | Verification checklist for setup, reboots, and network changes |
+| [opencode.md](opencode.md) | OpenCode CLI setup — local AI terminal agent (uses Ollama) |
+| [claudecode.md](claudecode.md) | Claude Code CLI setup — Anthropic's terminal agent (cloud API) |
 
 ## Scripts
 

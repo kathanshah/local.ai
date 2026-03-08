@@ -26,6 +26,7 @@ What was done to configure this server and the current state of each phase.
 | — | Hostname & mDNS | Done | hostname=ai, avahi re-enabled, allow-interfaces whitelist (real NICs only), UFW allows 5353/udp |
 | — | Nginx reverse proxy | Done | Port 80 → Open WebUI (3000), users access http://ai.local |
 | — | Branding (Stocky AI) | Done | App name=Stocky AI, model name=Stocky, custom system prompt, business suggestions, signup disabled |
+| — | Code interpreter (Jupyter) | Done | Jupyter container on ai-net, connected to Open WebUI for file generation (Excel, CSV, etc.) |
 | — | Web search (SearXNG) | Done | Self-hosted search via Docker, private, no API keys needed |
 | — | Toggle parallel script | Done | `bash scripts/toggle-parallel.sh` switches between 1×32K and 2×16K |
 | 9 | BIOS XMP check | Pending | Check on next reboot: DEL/F2 → Memory settings → Enable XMP |
@@ -50,6 +51,7 @@ What was done to configure this server and the current state of each phase.
 /mnt/ai-models/             ← 2nd SSD (1.86 TB)
   ├── ollama/               ← Model weights (19 GB, ollama:ollama ownership)
   ├── open-webui/           ← Open WebUI data & user DB
+  ├── jupyter-data/         ← Jupyter working directory (code interpreter output files)
   ├── open-interpreter-env/ ← Python venv
   └── qwen-agent-env/       ← Python venv
 ```

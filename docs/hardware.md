@@ -24,8 +24,9 @@ This documents the exact hardware and software this setup was built and tested o
 | Ollama | 0.17.7 | LLM inference server |
 | Open WebUI | latest (Docker) | `ghcr.io/open-webui/open-webui:main` |
 | Nginx | 1.24.0 | Reverse proxy (port 80 → Open WebUI) |
-| Docker | Community Edition | For Open WebUI and SearXNG containers |
+| Docker | Community Edition | For Open WebUI, SearXNG, and Jupyter containers |
 | SearXNG | latest (Docker) | Self-hosted search engine for private web search |
+| Jupyter | latest (Docker) | `jupyter/minimal-notebook` — code interpreter for file generation (Excel, CSV, etc.) |
 | Python | 3.x (system) | Venvs for Open Interpreter and Qwen-Agent |
 
 ## Models Tested
