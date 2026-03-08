@@ -282,6 +282,14 @@ deactivate
 source /mnt/ai-models/qwen-agent-env/bin/activate
 pip install --upgrade "qwen-agent[gui,rag,code-interpreter,mcp]"
 deactivate
+
+# Claude Code Python env (file generation + web research via Bash tool)
+source /mnt/ai-models/claude-code-env/bin/activate
+pip install --upgrade pandas openpyxl xlsxwriter xlrd matplotlib seaborn plotly scipy \
+  python-docx python-pptx fpdf2 reportlab weasyprint pypdf pymupdf Jinja2 Markdown \
+  tabulate lxml xmltodict pyyaml requests httpx beautifulsoup4 chardet qrcode premailer \
+  cairosvg html2text markdownify trafilatura duckduckgo-search feedparser
+deactivate
 ```
 
 ### System updates (NVIDIA excluded)

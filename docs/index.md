@@ -21,6 +21,7 @@ Server administration docs for the local.ai office server.
 | [runbook.md](runbook.md) | Daily operations, maintenance, and troubleshooting |
 | [checklist.md](checklist.md) | Verification checklist for setup, reboots, and network changes |
 | [cli-tools.md](cli-tools.md) | CLI coding assistants — Claude Code + Ollama setup (recommended), OpenCode, CodeBuff comparison |
+| [system-prompt.md](system-prompt.md) | System prompt for local model — why it exists, how it works, how to maintain it |
 
 ## Scripts
 
@@ -35,6 +36,7 @@ All scripts are in [`../scripts/`](../scripts/). On the server they're also at `
 | [backup-config.sh](../scripts/backup-config.sh) | Backup all config files to 2nd SSD | `bash scripts/backup-config.sh` |
 | [toggle-parallel.sh](../scripts/toggle-parallel.sh) | Switch between 1×32K and 2×16K parallel modes | `bash scripts/toggle-parallel.sh` |
 | [claude-local.sh](../scripts/claude-local.sh) | Run Claude Code with local Ollama (free, private) | `bash scripts/claude-local.sh` |
+| [stocky-prompt.txt](../scripts/stocky-prompt.txt) | System prompt for local model — maps tasks to Python packages | Used by claude-local.sh and client alias |
 
 ## Quick Commands
 

@@ -30,39 +30,159 @@ Or with a one-shot command:
 bash scripts/claude-local.sh -p "create an Excel file at ~/report.xlsx with Q1 sales data"
 ```
 
-The wrapper sets these environment variables:
+The wrapper sets these environment variables and activates a Python venv:
 ```bash
 export ANTHROPIC_BASE_URL="http://localhost:11434"
 export ANTHROPIC_API_KEY="ollama"
 unset ANTHROPIC_AUTH_TOKEN   # Prevent conflict with stored claude.ai login
 unset CLAUDECODE             # Prevent nested-session detection
+export PATH="/mnt/ai-models/claude-code-env/bin:$PATH"  # Python venv with all file generation packages
 ```
+
+The wrapper also appends a system prompt (`--append-system-prompt`) that tells the model to use `python3` via the Bash tool directly instead of Jupyter notebooks, and lists all available packages. This gives Claude Code direct access to Python with 25+ packages for file generation (Excel, Word, PowerPoint, PDF, charts, images) without needing Jupyter or Docker. See the full package list in the client section below.
 
 ### On client machines (any computer on the network)
 
-1. Install Claude Code:
-   ```bash
-   # Linux / macOS / WSL
-   curl -fsSL https://claude.ai/install.sh | bash
+#### Step 1: Install prerequisites
 
-   # Windows PowerShell
-   irm https://claude.ai/install.ps1 | iex
-   ```
+The AI model runs on the server. But Claude Code executes commands (file creation, analysis, scripts) **locally on the client machine**, so the client needs these tools installed:
 
-2. Set environment variables (add to shell profile for persistence):
-   ```bash
-   export ANTHROPIC_BASE_URL="http://ai.local:11434"
-   export ANTHROPIC_API_KEY="ollama"
-   ```
+| What | Why | Install |
+|------|-----|---------|
+| **Claude Code** | The CLI itself | See below |
+| **Python 3.10+** | File generation, data analysis, scripting | https://www.python.org/downloads/ |
+| **Git** | Version control, required on Windows | https://git-scm.com/downloads |
 
-3. Run:
-   ```bash
-   claude --model qwen3:32b
-   ```
+**Windows note:** Git for Windows is required — Claude Code uses Git Bash internally.
 
-No Anthropic account or login needed. All processing runs on the AI server GPU.
+#### Step 2: Install Claude Code
+
+```bash
+# Linux / macOS / WSL
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Windows PowerShell
+irm https://claude.ai/install.ps1 | iex
+```
+
+#### Step 3: Install Python packages
+
+Install all packages in one command:
+```bash
+pip install pandas openpyxl xlsxwriter xlrd matplotlib seaborn plotly scipy python-docx python-pptx fpdf2 reportlab weasyprint pypdf pymupdf Jinja2 Markdown tabulate lxml xmltodict pyyaml requests httpx beautifulsoup4 chardet qrcode premailer cairosvg html2text markdownify trafilatura duckduckgo-search feedparser
+```
+
+**What each package does:**
+
+| Category | Package | What it does |
+|----------|---------|-------------|
+| **Spreadsheets** | `pandas` | Read/write CSV, Excel, JSON, SQL; filter, group, pivot data |
+| | `openpyxl` | Read/write `.xlsx` files (Excel 2010+) |
+| | `xlsxwriter` | Create `.xlsx` with formatting, charts, formulas |
+| | `xlrd` | Read old `.xls` files (pre-2007 Excel) |
+| **Documents** | `python-docx` | Create/read Word `.docx` files |
+| | `python-pptx` | Create/read PowerPoint `.pptx` presentations |
+| | `Markdown` | Convert Markdown to HTML |
+| **PDF** | `fpdf2` | Create simple PDFs (invoices, letters, reports) |
+| | `reportlab` | Create complex PDF layouts (pixel-precise control) |
+| | `weasyprint` | Convert HTML+CSS to PDF (best for styled reports) |
+| | `pypdf` | Merge, split, encrypt, watermark existing PDFs |
+| | `pymupdf` | Read/extract text from PDFs (fast, full-featured) |
+| **Charts** | `matplotlib` | Static charts (bar, line, pie, scatter, etc.) |
+| | `seaborn` | Statistical charts with better styling |
+| | `plotly` | Interactive HTML charts and dashboards |
+| **Data** | `scipy` | Statistical analysis, curve fitting |
+| | `lxml` | Fast XML/HTML parsing |
+| | `xmltodict` | XML ↔ Python dict conversion |
+| | `pyyaml` | Read/write YAML files |
+| | `chardet` | Detect file encoding (UTF-8, Latin-1, etc.) |
+| **Web/HTML** | `requests` | Download files, call APIs |
+| | `httpx` | Modern HTTP client (async, HTTP/2, faster) |
+| | `beautifulsoup4` | Parse HTML/XML, scrape web tables |
+| | `Jinja2` | HTML template engine (for report generation) |
+| | `tabulate` | Pretty-print tables as HTML, Markdown, or text |
+| | `premailer` | Inline CSS for HTML emails |
+| | `html2text` | Convert HTML to clean Markdown |
+| | `markdownify` | HTML to Markdown with fine-grained control |
+| **Web research** | `trafilatura` | Extract article text from any URL (reader mode) |
+| | `duckduckgo-search` | Search the web programmatically (no API key) |
+| | `feedparser` | Parse RSS/Atom news feeds |
+| **Images** | `cairosvg` | Convert SVG to PNG/PDF |
+| | `qrcode` | Generate QR code images |
+
+#### Step 4: Set environment variables
+
+```bash
+# Linux / macOS — add to ~/.bashrc or ~/.zshrc
+export ANTHROPIC_BASE_URL="http://ai.local:11434"
+export ANTHROPIC_API_KEY="ollama"
+```
+```powershell
+# Windows — run in PowerShell as admin for permanent env vars
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "http://ai.local:11434", "User")
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "ollama", "User")
+```
+
+#### Step 5: Download the system prompt file
+
+The system prompt tells the AI model which Python packages to use for each task type. Without it, the model may give manual instructions instead of executing code directly.
+
+```bash
+# Download from the server (one-time setup)
+mkdir -p ~/.stocky
+curl -o ~/.stocky/prompt.txt http://ai.local/stocky-prompt.txt
+
+# Or copy manually from the server repo: scripts/stocky-prompt.txt
+```
+
+#### Step 6: Run
+
+Create a shell alias (add to `~/.bashrc`, `~/.zshrc`, or PowerShell profile):
+```bash
+# Linux / macOS
+alias stocky='ANTHROPIC_BASE_URL="http://ai.local:11434" ANTHROPIC_API_KEY="ollama" claude --model qwen3:32b --append-system-prompt "$(cat ~/.stocky/prompt.txt)"'
+```
+```powershell
+# Windows PowerShell — add to $PROFILE
+function stocky { $env:ANTHROPIC_BASE_URL="http://ai.local:11434"; $env:ANTHROPIC_API_KEY="ollama"; claude --model qwen3:32b --append-system-prompt (Get-Content ~/.stocky/prompt.txt -Raw) @args }
+```
+
+Then just run `stocky` from any terminal.
+
+No Anthropic account or login needed. The AI thinks on the server GPU; file operations run on the client.
 
 > **Note:** If you've previously logged into claude.ai on the same machine, you may see a warning about "Both a token and an API key are set." This is cosmetic — the local connection works correctly. To silence it, run `claude /logout` first.
+
+#### What you can ask it to do
+
+Once set up, clients can ask things like:
+
+**Spreadsheets & Data:**
+- "Read sales.xlsx and create a bar chart of revenue by quarter"
+- "Create an Excel file with employee data — 50 rows, formatted with headers and totals"
+- "Analyze this CSV and find outliers" (pipe data in)
+- "Convert this JSON file to a formatted Excel spreadsheet"
+
+**Documents:**
+- "Create a Word document with our quarterly report — include charts and tables"
+- "Build a 10-slide PowerPoint presentation on project status"
+- "Generate a PDF invoice for client XYZ with line items and totals"
+
+**Reports & Analysis:**
+- "Read all .csv files in this folder and create a summary PDF report with charts"
+- "Create an HTML dashboard from this data with interactive Plotly charts"
+- "Merge these 5 PDFs into one and add page numbers"
+
+**Web Research:**
+- "Search the web for 'best CRM for small business 2026' and summarize the top 5"
+- "Read this article URL and give me a summary with key points"
+- "Check the latest news from this RSS feed and create a digest"
+- "Download this PDF from the web and extract the key data into a spreadsheet"
+
+**Web & Files:**
+- "Scrape the table from this HTML file and save as CSV"
+- "Generate a QR code for this URL"
+- "Convert this SVG logo to PNG at 300 DPI"
 
 ### Using Anthropic's cloud instead
 
@@ -113,14 +233,35 @@ bash scripts/claude-local.sh --resume <session-id>
 ### File generation examples
 
 ```bash
-# Excel file
+# Excel spreadsheet
 bash scripts/claude-local.sh -p "create ~/report.xlsx with employee data: Name, Department, Salary, Start Date. Add 20 sample rows."
+
+# Word document
+bash scripts/claude-local.sh -p "create ~/memo.docx — a professional memo about Q1 results with a summary table"
+
+# PDF report
+bash scripts/claude-local.sh -p "read ~/data.csv and create ~/report.pdf with charts and a summary table"
+
+# PowerPoint
+bash scripts/claude-local.sh -p "create ~/presentation.pptx — 8 slides on project status with bullet points and a chart"
 
 # CSV from existing data
 cat raw-data.txt | bash scripts/claude-local.sh -p "parse this into a clean CSV at ~/output.csv"
 
-# Python script
-bash scripts/claude-local.sh -p "write a Python script at ~/backup.py that backs up /mnt/ai-models/open-webui/ to a timestamped tar.gz"
+# Analyze and chart
+bash scripts/claude-local.sh -p "read ~/sales.xlsx, find the top 5 products, and save a bar chart as ~/top5.png"
+
+# Merge PDFs
+bash scripts/claude-local.sh -p "merge all PDFs in ~/invoices/ into ~/combined.pdf"
+
+# Web research
+bash scripts/claude-local.sh -p "search the web for 'RTX 5090 benchmarks' and summarize the top results"
+
+# Read a URL
+bash scripts/claude-local.sh -p "read https://example.com/article and create a one-page PDF summary"
+
+# Extract text from a PDF
+bash scripts/claude-local.sh -p "read ~/contract.pdf and list all dates and dollar amounts mentioned"
 ```
 
 ---

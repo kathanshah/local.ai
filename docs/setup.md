@@ -52,8 +52,9 @@ What was done to configure this server and the current state of each phase.
   ├── ollama/               ← Model weights (19 GB, ollama:ollama ownership)
   ├── open-webui/           ← Open WebUI data & user DB
   ├── jupyter-data/         ← Jupyter working directory (code interpreter output files)
-  ├── open-interpreter-env/ ← Python venv
-  └── qwen-agent-env/       ← Python venv
+  ├── open-interpreter-env/ ← Python venv (Open Interpreter)
+  ├── qwen-agent-env/       ← Python venv (Qwen-Agent)
+  └── claude-code-env/      ← Python venv (Claude Code file generation: pandas, matplotlib, openpyxl)
 ```
 
 ## Config Files

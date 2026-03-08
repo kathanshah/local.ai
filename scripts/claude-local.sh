@@ -18,4 +18,12 @@ export ANTHROPIC_API_KEY="ollama"
 unset ANTHROPIC_AUTH_TOKEN
 unset CLAUDECODE
 
-exec claude --model qwen3:32b "$@"
+# Activate Python venv so Bash tool can run pandas/matplotlib/openpyxl
+export PATH="/mnt/ai-models/claude-code-env/bin:$PATH"
+
+# System prompt guides local model behavior (task→package mapping).
+# Single source of truth: scripts/stocky-prompt.txt (shared with client alias).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_PROMPT="$(cat "$SCRIPT_DIR/stocky-prompt.txt")"
+
+exec claude --model qwen3:32b --append-system-prompt "$LOCAL_PROMPT" "$@"

@@ -12,6 +12,8 @@ That's it. Type your question and Stocky will handle the rest.
 
 ## What Stocky Can Do
 
+### Browser Chat (http://ai.local)
+
 - **Write emails and content** — Professional emails, blog posts, social media, newsletters
 - **Work with documents** — Summarize PDFs, review contracts, extract key points
 - **Spreadsheet help** — Analyze data, suggest formulas, generate reports
@@ -20,11 +22,36 @@ That's it. Type your question and Stocky will handle the rest.
 - **Brainstorm** — Strategy sessions, business plans, marketing ideas
 - **Translate** — Works across multiple languages
 - **Upload files** — Drag and drop documents, spreadsheets, images into the chat
+- **Web search** — Toggle "Search" to let Stocky search the internet via private SearXNG
+
+### Terminal CLI (Claude Code + Stocky alias)
+
+For power users who prefer the command line. The CLI can do everything the browser chat does, **plus**:
+
+- **Create files directly** — Excel, Word, PowerPoint, PDF, CSV, images, charts
+- **Read and analyze files** — Open any file on your computer, extract data, find patterns
+- **Web research** — Search the web, read articles from URLs, parse RSS feeds, download files
+- **Generate reports** — Combine data + charts + text into formatted PDF/HTML reports
+- **Batch operations** — Process multiple files, merge PDFs, convert formats
+- **Code execution** — Write and run Python scripts on the spot
+
+| Task | Example command |
+|------|----------------|
+| Create an Excel file | `stocky -p "create ~/report.xlsx with sales data by quarter"` |
+| Read and chart data | `stocky -p "read ~/data.csv, find top 10 products, save chart to ~/top10.png"` |
+| Create a Word doc | `stocky -p "create ~/memo.docx — Q1 results with tables and summary"` |
+| Generate a PDF | `stocky -p "create ~/invoice.pdf for client ABC, 3 line items"` |
+| Web research | `stocky -p "search for 'best CRM 2026' and save a summary to ~/crm-research.md"` |
+| Read a URL | `stocky -p "read https://example.com/article and give me key points"` |
+| Create a presentation | `stocky -p "create ~/status.pptx — 8 slides on project progress"` |
+| Merge PDFs | `stocky -p "merge all PDFs in ~/invoices/ into ~/combined.pdf"` |
+
+**Setup:** See [CLI setup guide](docs/cli-tools.md) — takes 5 minutes. Works on Windows, Mac, and Linux.
 
 ## What Stocky Can't Do
 
-- **Limited internet** — Stocky can search the web when you click the "Search" toggle, but it doesn't browse freely. Its base knowledge comes from training data (up to early 2025)
-- **No image generation** — It can analyze images you upload, but can't create new images
+- **Limited internet** — Stocky can search the web (browser: toggle "Search"; CLI: automatic via DuckDuckGo), but it doesn't browse freely. Its base knowledge comes from training data (up to early 2025)
+- **No image generation** — It can analyze images you upload, but can't create new images (it can create charts and QR codes)
 - **Not a database** — It can't query your company databases or CRM directly
 - **May get facts wrong** — Like all AI, it can "hallucinate" — always verify important facts, numbers, and legal/financial advice
 - **No memory between chats** — Each new chat starts fresh. Stocky doesn't remember previous conversations (unless you're continuing in the same chat thread)
@@ -55,13 +82,14 @@ One request is processed at a time. If someone else is using Stocky, yours queue
 
 ## Access From Any Device
 
-| What | How |
-|------|-----|
-| Chat interface | http://ai.local |
-| From Windows/Mac/Linux | Just open the URL in any browser |
-| From phone/tablet | Same URL — works on mobile browsers too |
+| What | How | Setup needed? |
+|------|-----|---------------|
+| **Browser chat** | http://ai.local | No — just open the URL |
+| **Terminal CLI** | Run `stocky` in your terminal | Yes — [5-minute setup](docs/cli-tools.md) |
+| From Windows/Mac/Linux | Both methods work on all platforms | |
+| From phone/tablet | Browser chat — works on mobile browsers | |
 
-No installation needed on your computer. If `ai.local` doesn't load, use `http://192.168.29.100` instead.
+If `ai.local` doesn't load, use `http://192.168.29.100` instead.
 
 ## Tips for Best Results
 

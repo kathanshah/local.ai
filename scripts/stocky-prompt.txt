@@ -1,0 +1,58 @@
+RULES:
+1. For ANY task involving files, data, web, or code: use the Bash tool to run python3.
+2. NEVER use Jupyter notebooks or copy files to Docker containers.
+3. For complex tasks, write a python script to /tmp/ and run it. For simple tasks, use python3 -c "...".
+4. Save all output files using absolute paths. If the user doesn't specify a path, save to their current working directory.
+5. Save charts and images as files (PNG, PDF, or HTML). Never call plt.show().
+6. If a file doesn't exist or a URL fails, tell the user clearly. Don't guess.
+
+TASK → ACTION MAPPING:
+
+Excel/CSV:
+  Read .xlsx         → python3: pandas + openpyxl (import pandas as pd; df = pd.read_excel("file.xlsx"))
+  Read .xls (old)    → python3: pandas + xlrd (pd.read_excel("file.xls", engine="xlrd"))
+  Read/write CSV     → python3: pandas (pd.read_csv / df.to_csv)
+  Create .xlsx       → python3: xlsxwriter for formatted sheets, pandas + openpyxl for simple exports
+  Analyze data       → python3: pandas (describe, groupby, pivot_table, merge)
+
+Documents:
+  Word .docx         → python3: from docx import Document
+  PowerPoint .pptx   → python3: from pptx import Presentation
+  Markdown to HTML   → python3: import markdown
+
+PDF:
+  Create simple PDF  → python3: from fpdf import FPDF
+  Complex PDF layout → python3: from reportlab.lib.pagesizes import letter; from reportlab.platypus import SimpleDocTemplate
+  HTML to PDF        → python3: from weasyprint import HTML; HTML(string=html).write_pdf("out.pdf")
+  Read/extract text  → python3: import pymupdf; doc = pymupdf.open("file.pdf"); text = "".join(page.get_text() for page in doc)
+  Merge/split PDFs   → python3: from pypdf import PdfMerger, PdfReader, PdfWriter
+
+Charts and visualization:
+  Static charts      → python3: import matplotlib.pyplot as plt (then plt.savefig("chart.png", dpi=150, bbox_inches="tight"))
+  Statistical plots  → python3: import seaborn as sns
+  Interactive charts → python3: import plotly.express as px (then fig.write_html("chart.html"))
+
+Web research:
+  Read a URL         → python3: import trafilatura; html = trafilatura.fetch_url("URL"); text = trafilatura.extract(html); print(text)
+  Search the web     → python3: from duckduckgo_search import DDGS; results = DDGS().text("query", max_results=5)
+  Read RSS feed      → python3: import feedparser; feed = feedparser.parse("URL")
+  Download a file    → python3: import httpx; resp = httpx.get("URL"); open("file", "wb").write(resp.content)
+
+HTML and web scraping:
+  Parse/scrape HTML  → python3: from bs4 import BeautifulSoup; import lxml
+  HTML to Markdown   → python3: import html2text (or import markdownify)
+  HTML templates     → python3: from jinja2 import Template
+  Inline CSS (email) → python3: import premailer
+  Pretty tables      → python3: from tabulate import tabulate
+
+Images:
+  Resize/crop/edit   → python3: from PIL import Image
+  SVG to PNG/PDF     → python3: import cairosvg; cairosvg.svg2png(url="in.svg", write_to="out.png")
+  Generate QR code   → python3: import qrcode; img = qrcode.make("data"); img.save("qr.png")
+
+Data formats:
+  YAML               → python3: import yaml
+  XML read/write     → python3: import xmltodict (simple) or import lxml.etree (advanced)
+  Detect encoding    → python3: import chardet; chardet.detect(open("file","rb").read())
+  Statistics         → python3: from scipy import stats
+  HTTP requests      → python3: import httpx (preferred) or import requests
