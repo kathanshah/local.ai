@@ -37,6 +37,7 @@ All in `scripts/`. Run from repo root with `bash scripts/<name>.sh`.
 | `toggle-parallel.sh` | Switch between 1×32K context and 2×16K parallel mode |
 | `change-network.sh` | Switch WiFi/Ethernet/DHCP, auto-updates firewall + mDNS |
 | `backup-config.sh` | Backup config files to `/mnt/ai-models/backups/` |
+| `claude-local.sh` | Run Claude Code CLI using local Ollama (free, private) |
 
 ## Key Documentation
 
@@ -47,6 +48,7 @@ All in `scripts/`. Run from repo root with `bash scripts/<name>.sh`.
 | `docs/setup.md` | Setup log with phase status, config file locations, issues fixed |
 | `docs/checklist.md` | Manual verification checklist |
 | `docs/hardware.md` | Exact hardware/software specs and performance tuning values |
+| `docs/cli-tools.md` | CLI coding assistants — Claude Code + Ollama setup, comparisons |
 
 ## Important Details
 
