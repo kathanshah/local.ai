@@ -343,19 +343,18 @@ if (-not $promptDownloaded) {
     Write-Fail "Could not download prompt. Copy scripts/stocky-prompt.txt from the server to: $promptFile"
 }
 
-# --- 10. Set up claude credentials for local Ollama ---
+# --- 10. Skip Claude Code login screen ---
 
-Write-Step "Configuring Claude Code credentials for local server"
+Write-Step "Configuring Claude Code for local server (skip login screen)"
+# Claude Code checks ~/.claude.json for hasCompletedOnboarding -- without it, it shows login screen
+$onboardingFile = Join-Path $env:USERPROFILE ".claude.json"
+Set-Content -Path $onboardingFile -Value '{"hasCompletedOnboarding":true}' -Encoding UTF8
+Write-OK "Created .claude.json (hasCompletedOnboarding)"
+
 $claudeDir = Join-Path $env:USERPROFILE ".claude"
 if (-not (Test-Path $claudeDir)) { New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null }
 
-# Write a credentials file that tells Claude Code to use API key auth (skips login screen)
-$credPath = Join-Path $claudeDir ".credentials.json"
-$credContent = '{"apiKey":"ollama"}'
-Set-Content -Path $credPath -Value $credContent -Encoding UTF8
-Write-OK "Created .credentials.json for local Ollama auth"
-
-# Also create settings.json if it doesn't exist
+# Create settings.json if it doesn't exist
 $settingsPath = Join-Path $claudeDir "settings.json"
 if (-not (Test-Path $settingsPath)) {
     Set-Content -Path $settingsPath -Value '{}' -Encoding UTF8

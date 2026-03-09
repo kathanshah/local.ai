@@ -378,13 +378,14 @@ if [ "$PROMPT_DOWNLOADED" = false ]; then
     ERRORS=$((ERRORS + 1))
 fi
 
-# --- 11. Set up claude credentials for local Ollama ---
+# --- 11. Skip Claude Code login screen ---
 
-step "Configuring Claude Code credentials for local server"
+step "Configuring Claude Code for local server (skip login screen)"
+# Claude Code checks ~/.claude.json for hasCompletedOnboarding -- without it, it shows login screen
+echo '{"hasCompletedOnboarding":true}' > "$HOME/.claude.json"
+ok "Created .claude.json (hasCompletedOnboarding)"
+
 mkdir -p "$HOME/.claude"
-echo '{"apiKey":"ollama"}' > "$HOME/.claude/.credentials.json"
-ok "Created .credentials.json for local Ollama auth"
-
 if [ ! -f "$HOME/.claude/settings.json" ]; then
     echo '{}' > "$HOME/.claude/settings.json"
     ok "Created settings.json"

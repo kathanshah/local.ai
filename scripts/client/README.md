@@ -61,12 +61,11 @@ Run as **Administrator** for full automation (hosts file, execution policy, glob
 
 ### First run -- login screen fix
 
-If claude shows a login screen (asking for "Claude account", "Anthropic account", etc.), it needs a credentials file to skip the auth flow. Create it manually:
+If claude shows a login screen (asking for "Claude account", "Anthropic account", etc.), it needs an onboarding flag to skip the auth flow. Create it:
 
 **cmd.exe:**
 ```cmd
-mkdir "%USERPROFILE%\.claude" 2>nul
-echo {"apiKey":"ollama"} > "%USERPROFILE%\.claude\.credentials.json"
+echo {"hasCompletedOnboarding":true} > "%USERPROFILE%\.claude.json"
 set ANTHROPIC_BASE_URL=http://ai.local:11434
 set ANTHROPIC_API_KEY=ollama
 set ANTHROPIC_AUTH_TOKEN=
@@ -75,15 +74,14 @@ claude --model qwen3:32b
 
 **PowerShell:**
 ```powershell
-New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null
-'{"apiKey":"ollama"}' | Set-Content "$env:USERPROFILE\.claude\.credentials.json"
+'{"hasCompletedOnboarding":true}' | Set-Content "$env:USERPROFILE\.claude.json"
 $env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
 $env:ANTHROPIC_API_KEY = "ollama"
 $env:ANTHROPIC_AUTH_TOKEN = ""
 claude --model qwen3:32b
 ```
 
-The credentials file tells Claude Code that auth is handled (the actual connection uses the env vars to reach your local Ollama server). You only need to do this once -- the setup script does it automatically.
+The `.claude.json` file tells Claude Code that initial setup is done. The env vars then point it to your local Ollama server. You only need to do this once -- the setup script does it automatically.
 
 ### Running manually (without the stocky command)
 
@@ -160,11 +158,10 @@ bash scripts/client/setup-mac.sh
 
 ### First run -- login screen fix
 
-If claude shows a login screen, create a credentials file to skip it:
+If claude shows a login screen, create the onboarding flag to skip it:
 
 ```bash
-mkdir -p ~/.claude
-echo '{"apiKey":"ollama"}' > ~/.claude/.credentials.json
+echo '{"hasCompletedOnboarding":true}' > ~/.claude.json
 export ANTHROPIC_BASE_URL="http://ai.local:11434"
 export ANTHROPIC_API_KEY="ollama"
 export ANTHROPIC_AUTH_TOKEN=""
@@ -211,7 +208,7 @@ All file operations run locally on the client. The server only provides AI infer
 
 | Problem | Fix |
 |---------|-----|
-| Claude asks for login | Create credentials file: `echo {"apiKey":"ollama"} > ~/.claude/.credentials.json` (see "First run" above) |
+| Claude asks for login | Create onboarding flag: `echo {"hasCompletedOnboarding":true} > ~/.claude.json` (see "First run" above) |
 | `ai.local` doesn't resolve | Re-run setup script -- it auto-detects the server IP. Or manually add to hosts file |
 | `stocky` not found | Close and reopen terminal to pick up PATH changes |
 | `weasyprint`/`cairosvg` errors | Windows: install GTK3 runtime. Mac: `brew install cairo pango gdk-pixbuf libffi` |
