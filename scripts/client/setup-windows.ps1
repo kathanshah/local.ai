@@ -93,6 +93,9 @@ if (Test-Command "winget") {
 
 Write-Step "Checking network connectivity to ai.local"
 $serverReachable = $false
+$serverIP = $null
+
+# Try ai.local first (mDNS)
 try {
     $response = Invoke-WebRequest -Uri "http://ai.local:11434/api/version" -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
     Write-OK "ai.local is reachable (Ollama API responding)"
@@ -100,31 +103,56 @@ try {
 } catch {
     Write-Fail "Cannot reach ai.local:11434"
 
-    # Try by IP to distinguish DNS vs network issue
-    $ipReachable = $false
+    # Try known IPs (static IP + common server names)
+    Write-Host "    Scanning for Ollama server on the network..." -ForegroundColor DarkGray
+    $tryIPs = @("192.168.29.100")
+
+    # Also try resolving 'ai' hostname via DNS
     try {
-        Invoke-WebRequest -Uri "http://192.168.29.100:11434/api/version" -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop | Out-Null
-        $ipReachable = $true
+        $dnsResult = [System.Net.Dns]::GetHostAddresses("ai") | Where-Object { $_.AddressFamily -eq "InterNetwork" } | Select-Object -First 1
+        if ($dnsResult) { $tryIPs += $dnsResult.IPAddressToString }
     } catch {}
 
-    if ($ipReachable) {
-        Write-Host "    Server is reachable by IP but 'ai.local' doesn't resolve." -ForegroundColor White
+    # Scan common addresses on the client's own subnet
+    $clientIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch "^(127\.|169\.254\.)" -and $_.PrefixOrigin -ne "WellKnown" } | Select-Object -First 1).IPAddress
+    if ($clientIP) {
+        $subnet = ($clientIP -replace '\.\d+$', '')
+        # Try common server IPs on the same subnet
+        foreach ($last in @(1, 100, 200, 201, 10, 50)) {
+            $candidate = "$subnet.$last"
+            if ($candidate -ne $clientIP -and $tryIPs -notcontains $candidate) {
+                $tryIPs += $candidate
+            }
+        }
+    }
+
+    foreach ($ip in $tryIPs) {
+        try {
+            Invoke-WebRequest -Uri "http://${ip}:11434/api/version" -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop | Out-Null
+            $serverIP = $ip
+            Write-OK "Found Ollama server at $ip"
+            break
+        } catch {}
+    }
+
+    if ($serverIP) {
+        Write-Host "    Server found at $serverIP but 'ai.local' doesn't resolve." -ForegroundColor White
         Write-Host "    Attempting to fix via hosts file..." -ForegroundColor White
 
         $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
-        $hostsEntry = "192.168.29.100  ai.local"
+        $hostsEntry = "$serverIP  ai.local"
 
         if ($isAdmin) {
             $hostsContent = Get-Content $hostsPath -Raw -ErrorAction SilentlyContinue
-            if ($hostsContent -notmatch "ai\.local") {
-                Add-Content -Path $hostsPath -Value "`n$hostsEntry"
-                Write-OK "Added '$hostsEntry' to hosts file"
-                # Flush DNS cache
-                ipconfig /flushdns | Out-Null
-                $serverReachable = $true
-            } else {
-                Write-Skip "hosts file already contains ai.local entry"
+            # Remove old ai.local entry if present (IP may have changed)
+            if ($hostsContent -match "ai\.local") {
+                $hostsContent = ($hostsContent -split "`n" | Where-Object { $_ -notmatch "ai\.local" }) -join "`n"
+                Set-Content -Path $hostsPath -Value $hostsContent -NoNewline
             }
+            Add-Content -Path $hostsPath -Value "`n$hostsEntry"
+            Write-OK "Added '$hostsEntry' to hosts file"
+            ipconfig /flushdns | Out-Null
+            $serverReachable = $true
         } else {
             Write-Fail "Need admin privileges to edit hosts file."
             Write-Host "    Run this script as Administrator, or manually add to $hostsPath :" -ForegroundColor White
@@ -132,9 +160,13 @@ try {
         }
     } else {
         Write-Host ""
+        Write-Host "    Could not find Ollama server on the network." -ForegroundColor White
         Write-Host "    Make sure:" -ForegroundColor White
-        Write-Host "    - You are on the same network as the AI server (192.168.29.x)" -ForegroundColor White
+        Write-Host "    - You are on the same WiFi/LAN as the AI server" -ForegroundColor White
         Write-Host "    - The server is powered on and Ollama is running" -ForegroundColor White
+        if ($clientIP) {
+            Write-Host "    - Your IP is: $clientIP (subnet: $subnet.x)" -ForegroundColor DarkGray
+        }
     }
 
     if (-not $serverReachable) {
@@ -247,18 +279,26 @@ if ($pipAvailable) {
 
 # --- 8. Set environment variables ---
 
+# Determine the base URL -- use ai.local if it works, otherwise use discovered IP
+$ollamaHost = "ai.local"
+if (-not $serverReachable -and $serverIP) {
+    $ollamaHost = $serverIP
+}
+$baseURL = "http://${ollamaHost}:11434"
+
 Write-Step "Setting environment variables (persistent + current session)"
+Write-Host "    Using server address: $ollamaHost" -ForegroundColor DarkGray
 $currentBase = [System.Environment]::GetEnvironmentVariable("ANTHROPIC_BASE_URL", "User")
-if ($currentBase -eq "http://ai.local:11434") {
+if ($currentBase -eq $baseURL) {
     Write-Skip "Environment variables already set"
 } else {
-    [System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "http://ai.local:11434", "User")
+    [System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", $baseURL, "User")
     [System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "ollama", "User")
-    Write-OK "Set ANTHROPIC_BASE_URL = http://ai.local:11434"
+    Write-OK "Set ANTHROPIC_BASE_URL = $baseURL"
     Write-OK "Set ANTHROPIC_API_KEY = ollama"
 }
 # Set for current session regardless
-$env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
+$env:ANTHROPIC_BASE_URL = $baseURL
 $env:ANTHROPIC_API_KEY = "ollama"
 
 # --- 9. Download system prompt ---
@@ -267,17 +307,22 @@ Write-Step "Downloading system prompt"
 $promptDir = Join-Path $env:USERPROFILE ".stocky"
 if (-not (Test-Path $promptDir)) { New-Item -ItemType Directory -Path $promptDir | Out-Null }
 $promptFile = Join-Path $promptDir "prompt.txt"
-try {
-    Invoke-WebRequest -Uri "http://ai.local/stocky-prompt.txt" -OutFile $promptFile -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    Write-OK "Saved to $promptFile"
-} catch {
-    # Fallback: try by IP
+# Try ai.local first, then discovered IP, then hardcoded IP
+$promptURLs = @("http://ai.local/stocky-prompt.txt")
+if ($serverIP) { $promptURLs += "http://$serverIP/stocky-prompt.txt" }
+$promptURLs += "http://192.168.29.100/stocky-prompt.txt"
+
+$promptDownloaded = $false
+foreach ($url in $promptURLs) {
     try {
-        Invoke-WebRequest -Uri "http://192.168.29.100/stocky-prompt.txt" -OutFile $promptFile -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-        Write-OK "Saved to $promptFile (via IP fallback)"
-    } catch {
-        Write-Fail "Could not download prompt. Copy scripts/stocky-prompt.txt from the server to: $promptFile"
-    }
+        Invoke-WebRequest -Uri $url -OutFile $promptFile -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+        Write-OK "Saved to $promptFile"
+        $promptDownloaded = $true
+        break
+    } catch {}
+}
+if (-not $promptDownloaded) {
+    Write-Fail "Could not download prompt. Copy scripts/stocky-prompt.txt from the server to: $promptFile"
 }
 
 # --- 10. Clear old claude.ai login if present ---
@@ -314,22 +359,23 @@ $profileDir = Split-Path $PROFILE -Parent
 if (-not (Test-Path $profileDir)) { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
 if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }
 
-$stockyFunction = @'
+# Build the stocky function with the correct server address baked in
+$stockyFunction = @"
 
 # Stocky AI -- local AI assistant (added by setup script)
 function stocky {
-    $env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
-    $env:ANTHROPIC_API_KEY = "ollama"
-    $promptPath = Join-Path $env:USERPROFILE ".stocky\prompt.txt"
-    if (Test-Path $promptPath) {
-        $prompt = Get-Content $promptPath -Raw
-        claude --model qwen3:32b --append-system-prompt "$prompt" @args
+    `$env:ANTHROPIC_BASE_URL = "$baseURL"
+    `$env:ANTHROPIC_API_KEY = "ollama"
+    `$promptPath = Join-Path `$env:USERPROFILE ".stocky\prompt.txt"
+    if (Test-Path `$promptPath) {
+        `$prompt = Get-Content `$promptPath -Raw
+        claude --model qwen3:32b --append-system-prompt "`$prompt" @args
     } else {
-        Write-Host "Warning: System prompt not found at $promptPath. Running without it." -ForegroundColor Yellow
+        Write-Host "Warning: System prompt not found at `$promptPath. Running without it." -ForegroundColor Yellow
         claude --model qwen3:32b @args
     }
 }
-'@
+"@
 
 $profileContent = ""
 if (Test-Path $PROFILE) { $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue }
