@@ -1,4 +1,4 @@
-﻿﻿﻿# Stocky AI -- Windows Client Setup
+﻿# Stocky AI -- Windows Client Setup
 # Installs Claude Code CLI and configures it to use the local AI server (ai.local).
 #
 # Usage:
@@ -399,23 +399,13 @@ function stocky {
 $profileContent = ""
 if (Test-Path $PROFILE) { $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue }
 if ($profileContent -and $profileContent -match "function stocky") {
-    # Remove old stocky function and replace with updated version
-    $lines = Get-Content $PROFILE
-    $newLines = @()
-    $inStocky = $false
-    $braceDepth = 0
-    foreach ($line in $lines) {
-        if ($line -match "# Stocky AI -- local AI assistant") { $inStocky = $true; continue }
-        if ($line -match "^function stocky" -and -not $inStocky) { $inStocky = $true; $braceDepth = 0 }
-        if ($inStocky) {
-            $braceDepth += ($line.ToCharArray() | Where-Object { $_ -eq '{' }).Count
-            $braceDepth -= ($line.ToCharArray() | Where-Object { $_ -eq '}' }).Count
-            if ($braceDepth -le 0 -and $line -match '}') { $inStocky = $false; continue }
-            continue
-        }
-        $newLines += $line
+    # Remove old stocky function block and replace with updated version
+    $cleaned = $profileContent -replace '(?ms)\r?\n?# Stocky AI -- local AI assistant[^\n]*\r?\nfunction stocky \{.*?\n\}', ''
+    # Also handle case where comment line is missing
+    if ($cleaned -match "function stocky") {
+        $cleaned = $cleaned -replace '(?ms)\r?\n?function stocky \{.*?\n\}', ''
     }
-    Set-Content -Path $PROFILE -Value ($newLines -join "`n")
+    Set-Content -Path $PROFILE -Value $cleaned.TrimEnd() -NoNewline
     Add-Content -Path $PROFILE -Value $stockyFunction
     Write-OK "Updated 'stocky' function in $PROFILE"
 } else {
