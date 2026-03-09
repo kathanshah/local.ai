@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stocky AI — macOS Client Setup
+# Stocky AI -- macOS Client Setup
 # Installs Claude Code CLI and configures it to use the local AI server (ai.local).
 #
 # Usage:
@@ -11,7 +11,7 @@
 # prompts and installs Homebrew, which both require terminal input.
 #
 # What this script does:
-#   1. Checks network connectivity to ai.local
+#   1. Checks network connectivity to ai.local (scans subnet if needed)
 #   2. Installs Homebrew, Git, Node.js, Python if missing
 #   3. Installs Claude Code CLI via npm
 #   4. Installs native libs for weasyprint/cairosvg
@@ -22,7 +22,7 @@
 #   9. Creates a 'stocky' shell alias
 #  10. Verifies the full setup
 
-# Don't use set -e globally — we handle errors per-step
+# Don't use set -e globally -- we handle errors per-step
 set +e
 
 # --- Colors ---
@@ -35,7 +35,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}========================================${NC}"
-echo -e "${CYAN}  Stocky AI — macOS Client Setup${NC}"
+echo -e "${CYAN}  Stocky AI -- macOS Client Setup${NC}"
 echo -e "${CYAN}========================================${NC}"
 echo ""
 
@@ -45,7 +45,7 @@ skip()  { echo -e "    ${GRAY}SKIP: $1${NC}"; }
 fail()  { echo -e "    ${RED}FAIL: $1${NC}"; }
 info()  { echo -e "    $1"; }
 
-# Prompt user — reads from /dev/tty so it works even if stdin is redirected
+# Prompt user -- reads from /dev/tty so it works even if stdin is redirected
 ask() {
     local prompt="$1" reply
     read -rp "$prompt" reply < /dev/tty 2>/dev/null || reply="n"
@@ -70,44 +70,85 @@ touch "$SHELL_RC"
 
 step "Checking network connectivity to ai.local"
 SERVER_REACHABLE=false
+SERVER_IP=""
+
+# Try ai.local first (mDNS / Bonjour)
 if curl -sf --connect-timeout 5 "http://ai.local:11434/api/version" > /dev/null 2>&1; then
     ok "ai.local is reachable (Ollama API responding)"
     SERVER_REACHABLE=true
 else
     fail "Cannot reach ai.local:11434"
 
-    # Try by IP to distinguish DNS vs network issue
-    if curl -sf --connect-timeout 5 "http://192.168.29.100:11434/api/version" > /dev/null 2>&1; then
-        info "Server is reachable by IP but 'ai.local' doesn't resolve."
-        info "macOS usually resolves .local via Bonjour automatically."
-        info "If Bonjour isn't working, adding hosts entry..."
+    # Build a list of IPs to try
+    info "Scanning for Ollama server on the network..."
+    TRY_IPS="192.168.29.100"
 
-        if grep -q "ai\.local" /etc/hosts 2>/dev/null; then
-            skip "hosts file already contains ai.local entry"
-        else
-            echo "    Adding 192.168.29.100 ai.local to /etc/hosts (needs sudo)..."
-            sudo sh -c 'echo "192.168.29.100  ai.local" >> /etc/hosts'
-            if [ $? -eq 0 ]; then
-                ok "Added hosts entry"
-                sudo dscacheutil -flushcache 2>/dev/null
-                sudo killall -HUP mDNSResponder 2>/dev/null
-                # Re-verify the connection now works
-                sleep 1
-                if curl -sf --connect-timeout 5 "http://ai.local:11434/api/version" > /dev/null 2>&1; then
-                    ok "Verified: ai.local now resolves correctly"
-                    SERVER_REACHABLE=true
-                else
-                    fail "hosts entry added but ai.local still not reachable. May need terminal restart."
-                fi
-            else
-                fail "Could not write to /etc/hosts"
+    # Try resolving 'ai' hostname via DNS
+    DNS_IP=$(dig +short ai 2>/dev/null | head -1)
+    if [ -n "$DNS_IP" ]; then
+        TRY_IPS="$TRY_IPS $DNS_IP"
+    fi
+
+    # Get client's own IP and scan common addresses on the same subnet
+    CLIENT_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)
+    if [ -n "$CLIENT_IP" ]; then
+        SUBNET=$(echo "$CLIENT_IP" | sed 's/\.[0-9]*$//')
+        for LAST in 1 100 200 201 10 50; do
+            CANDIDATE="$SUBNET.$LAST"
+            if [ "$CANDIDATE" != "$CLIENT_IP" ]; then
+                # Only add if not already in list
+                echo "$TRY_IPS" | grep -q "$CANDIDATE" || TRY_IPS="$TRY_IPS $CANDIDATE"
             fi
+        done
+    fi
+
+    # Try each IP
+    for IP in $TRY_IPS; do
+        if curl -sf --connect-timeout 2 "http://${IP}:11434/api/version" > /dev/null 2>&1; then
+            SERVER_IP="$IP"
+            ok "Found Ollama server at $IP"
+            break
+        fi
+    done
+
+    if [ -n "$SERVER_IP" ]; then
+        info "Server found at $SERVER_IP but 'ai.local' doesn't resolve."
+        info "Adding hosts entry..."
+
+        # Remove old ai.local entry if present (IP may have changed)
+        if grep -q "ai\.local" /etc/hosts 2>/dev/null; then
+            info "Updating existing ai.local entry in /etc/hosts..."
+            sudo sed -i '' '/ai\.local/d' /etc/hosts 2>/dev/null
+        fi
+
+        echo "    Adding $SERVER_IP ai.local to /etc/hosts (needs sudo)..."
+        sudo sh -c "echo \"$SERVER_IP  ai.local\" >> /etc/hosts"
+        if [ $? -eq 0 ]; then
+            ok "Added hosts entry"
+            sudo dscacheutil -flushcache 2>/dev/null
+            sudo killall -HUP mDNSResponder 2>/dev/null
+            # Re-verify the connection now works
+            sleep 1
+            if curl -sf --connect-timeout 5 "http://ai.local:11434/api/version" > /dev/null 2>&1; then
+                ok "Verified: ai.local now resolves correctly"
+                SERVER_REACHABLE=true
+            else
+                # ai.local still doesn't work, but the IP does -- use IP directly
+                info "ai.local still not resolving, will use IP directly"
+                SERVER_REACHABLE=true
+            fi
+        else
+            fail "Could not write to /etc/hosts"
         fi
     else
         echo ""
+        info "Could not find Ollama server on the network."
         info "Make sure:"
-        info "- You are on the same network as the AI server (192.168.29.x)"
+        info "- You are on the same WiFi/LAN as the AI server"
         info "- The server is powered on and Ollama is running"
+        if [ -n "$CLIENT_IP" ]; then
+            info "- Your IP is: $CLIENT_IP (subnet: $SUBNET.x)"
+        fi
     fi
 
     if [ "$SERVER_REACHABLE" = false ]; then
@@ -115,6 +156,16 @@ else
         if [ "$cont" != "y" ]; then exit 1; fi
     fi
 fi
+
+# --- Determine the server address to use ---
+
+OLLAMA_HOST="ai.local"
+if [ "$SERVER_REACHABLE" = false ] && [ -n "$SERVER_IP" ]; then
+    OLLAMA_HOST="$SERVER_IP"
+elif [ -n "$SERVER_IP" ] && ! curl -sf --connect-timeout 2 "http://ai.local:11434/api/version" > /dev/null 2>&1; then
+    OLLAMA_HOST="$SERVER_IP"
+fi
+BASE_URL="http://${OLLAMA_HOST}:11434"
 
 # --- 2. Install Homebrew if missing ---
 
@@ -125,7 +176,7 @@ else
     echo "    Installing Homebrew (will prompt for password)..."
     # NONINTERACTIVE=1 skips the confirmation prompt but still needs sudo password
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    # Add brew to PATH — Apple Silicon uses /opt/homebrew, Intel uses /usr/local
+    # Add brew to PATH -- Apple Silicon uses /opt/homebrew, Intel uses /usr/local
     if [ -f /opt/homebrew/bin/brew ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
         if ! grep -q "homebrew" "$SHELL_RC" 2>/dev/null; then
@@ -275,30 +326,54 @@ fi
 # --- 9. Set environment variables ---
 
 step "Setting environment variables in $SHELL_RC"
-if grep -q "ANTHROPIC_BASE_URL.*ai\.local" "$SHELL_RC" 2>/dev/null; then
-    skip "Environment variables already set in $SHELL_RC"
-else
-    cat >> "$SHELL_RC" << 'ENVEOF'
+echo -e "    ${GRAY}Using server address: $OLLAMA_HOST${NC}"
 
-# Stocky AI — local AI server connection (added by setup script)
-export ANTHROPIC_BASE_URL="http://ai.local:11434"
+# Remove old entry if present (server IP may have changed)
+if grep -q "ANTHROPIC_BASE_URL" "$SHELL_RC" 2>/dev/null; then
+    # Check if it already matches
+    if grep -q "ANTHROPIC_BASE_URL.*${OLLAMA_HOST}" "$SHELL_RC" 2>/dev/null; then
+        skip "Environment variables already set to $OLLAMA_HOST in $SHELL_RC"
+    else
+        info "Updating server address in $SHELL_RC..."
+        sed -i '' '/# Stocky AI -- local AI server/d' "$SHELL_RC" 2>/dev/null
+        sed -i '' '/ANTHROPIC_BASE_URL/d' "$SHELL_RC" 2>/dev/null
+        sed -i '' '/ANTHROPIC_API_KEY.*ollama/d' "$SHELL_RC" 2>/dev/null
+        cat >> "$SHELL_RC" << ENVEOF
+
+# Stocky AI -- local AI server connection (added by setup script)
+export ANTHROPIC_BASE_URL="$BASE_URL"
+export ANTHROPIC_API_KEY="ollama"
+ENVEOF
+        ok "Updated ANTHROPIC_BASE_URL to $BASE_URL in $SHELL_RC"
+    fi
+else
+    cat >> "$SHELL_RC" << ENVEOF
+
+# Stocky AI -- local AI server connection (added by setup script)
+export ANTHROPIC_BASE_URL="$BASE_URL"
 export ANTHROPIC_API_KEY="ollama"
 ENVEOF
     ok "Added ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY to $SHELL_RC"
 fi
 # Set for current session
-export ANTHROPIC_BASE_URL="http://ai.local:11434"
+export ANTHROPIC_BASE_URL="$BASE_URL"
 export ANTHROPIC_API_KEY="ollama"
 
 # --- 10. Download system prompt ---
 
 step "Downloading system prompt"
 mkdir -p "$HOME/.stocky"
-if curl -sf --connect-timeout 10 "http://ai.local/stocky-prompt.txt" -o "$HOME/.stocky/prompt.txt" 2>/dev/null; then
-    ok "Saved to ~/.stocky/prompt.txt"
-elif curl -sf --connect-timeout 10 "http://192.168.29.100/stocky-prompt.txt" -o "$HOME/.stocky/prompt.txt" 2>/dev/null; then
-    ok "Saved to ~/.stocky/prompt.txt (via IP fallback)"
-else
+
+# Try ai.local, then discovered IP, then hardcoded IP
+PROMPT_DOWNLOADED=false
+for PROMPT_URL in "http://ai.local/stocky-prompt.txt" "http://${OLLAMA_HOST}/stocky-prompt.txt" "http://192.168.29.100/stocky-prompt.txt"; do
+    if curl -sf --connect-timeout 10 "$PROMPT_URL" -o "$HOME/.stocky/prompt.txt" 2>/dev/null; then
+        ok "Saved to ~/.stocky/prompt.txt"
+        PROMPT_DOWNLOADED=true
+        break
+    fi
+done
+if [ "$PROMPT_DOWNLOADED" = false ]; then
     fail "Could not download prompt. Copy scripts/stocky-prompt.txt from the server to: ~/.stocky/prompt.txt"
     ERRORS=$((ERRORS + 1))
 fi
@@ -325,13 +400,27 @@ fi
 # --- 12. Create 'stocky' alias ---
 
 step "Setting up 'stocky' command in $SHELL_RC"
-if grep -q "alias stocky=" "$SHELL_RC" 2>/dev/null || grep -q "function stocky" "$SHELL_RC" 2>/dev/null; then
-    skip "'stocky' alias already exists in $SHELL_RC"
-else
-    cat >> "$SHELL_RC" << 'ALIASEOF'
 
-# Stocky AI — local AI assistant command (added by setup script)
-alias stocky='ANTHROPIC_BASE_URL="http://ai.local:11434" ANTHROPIC_API_KEY="ollama" claude --model qwen3:32b --append-system-prompt "$(cat ~/.stocky/prompt.txt)"'
+# Remove old alias if present (server address may have changed)
+if grep -q "alias stocky=" "$SHELL_RC" 2>/dev/null || grep -q "function stocky" "$SHELL_RC" 2>/dev/null; then
+    if grep -q "alias stocky=.*${OLLAMA_HOST}" "$SHELL_RC" 2>/dev/null; then
+        skip "'stocky' alias already set to $OLLAMA_HOST in $SHELL_RC"
+    else
+        info "Updating stocky alias with new server address..."
+        sed -i '' '/# Stocky AI -- local AI assistant/d' "$SHELL_RC" 2>/dev/null
+        sed -i '' '/alias stocky=/d' "$SHELL_RC" 2>/dev/null
+        cat >> "$SHELL_RC" << ALIASEOF
+
+# Stocky AI -- local AI assistant command (added by setup script)
+alias stocky='ANTHROPIC_BASE_URL="$BASE_URL" ANTHROPIC_API_KEY="ollama" claude --model qwen3:32b --append-system-prompt "\$(cat ~/.stocky/prompt.txt)"'
+ALIASEOF
+        ok "Updated 'stocky' alias in $SHELL_RC"
+    fi
+else
+    cat >> "$SHELL_RC" << ALIASEOF
+
+# Stocky AI -- local AI assistant command (added by setup script)
+alias stocky='ANTHROPIC_BASE_URL="$BASE_URL" ANTHROPIC_API_KEY="ollama" claude --model qwen3:32b --append-system-prompt "\$(cat ~/.stocky/prompt.txt)"'
 ALIASEOF
     ok "Added 'stocky' alias to $SHELL_RC"
 fi
@@ -347,7 +436,7 @@ for check in "git:Git" "node:Node.js" "python3:Python" "claude:Claude Code"; do
     if command -v "$cmd" &> /dev/null; then
         ok "$name"
     else
-        fail "$name — restart terminal and re-run script"
+        fail "$name -- restart terminal and re-run script"
         VERIFY_PASS=false
     fi
 done
@@ -355,21 +444,21 @@ done
 if [ -f "$HOME/.stocky/prompt.txt" ] && [ -s "$HOME/.stocky/prompt.txt" ]; then
     ok "System prompt"
 else
-    fail "System prompt — download manually from server"
+    fail "System prompt -- download manually from server"
     VERIFY_PASS=false
 fi
 
 if grep -q "ANTHROPIC_BASE_URL" "$SHELL_RC" 2>/dev/null; then
     ok "Env vars in $SHELL_RC"
 else
-    fail "Env vars — not found in $SHELL_RC"
+    fail "Env vars -- not found in $SHELL_RC"
     VERIFY_PASS=false
 fi
 
 if [ "$SERVER_REACHABLE" = true ]; then
     ok "Server connection"
 else
-    fail "Server connection — check network"
+    fail "Server connection -- check network"
     VERIFY_PASS=false
 fi
 
@@ -392,8 +481,12 @@ echo ""
 echo "  1. Restart your terminal to pick up PATH and alias changes"
 echo "     Then re-run this script to verify everything passes."
 echo ""
-echo "  2. If ai.local still doesn't resolve after restart:"
-echo "     sudo sh -c 'echo \"192.168.29.100  ai.local\" >> /etc/hosts'"
+if [ -n "$SERVER_IP" ]; then
+    echo "  2. Server found at $SERVER_IP. If the IP changes, re-run this script."
+else
+    echo "  2. If ai.local still doesn't resolve after restart:"
+    echo "     sudo sh -c 'echo \"192.168.29.100  ai.local\" >> /etc/hosts'"
+fi
 echo ""
 echo -e "${CYAN}USAGE:${NC}"
 echo "  stocky                                  # Interactive session"
