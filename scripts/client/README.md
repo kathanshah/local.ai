@@ -63,10 +63,14 @@ Run as **Administrator** for full automation (hosts file, execution policy, glob
 
 If `stocky` isn't working or you prefer to run claude directly:
 
+If claude asks for a login method, run `claude /logout` first to clear stored cloud credentials, then try again.
+
 **cmd.exe:**
 ```cmd
 set ANTHROPIC_BASE_URL=http://ai.local:11434
 set ANTHROPIC_API_KEY=ollama
+set ANTHROPIC_AUTH_TOKEN=
+claude /logout
 claude --model qwen3:32b
 ```
 
@@ -74,10 +78,12 @@ claude --model qwen3:32b
 ```powershell
 $env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
 $env:ANTHROPIC_API_KEY = "ollama"
+$env:ANTHROPIC_AUTH_TOKEN = ""
+claude /logout
 claude --model qwen3:32b
 ```
 
-These three lines are all you need. The setup script already sets the env vars permanently, so after a restart you can just run `claude --model qwen3:32b` directly.
+The `claude /logout` clears any stored cloud login so claude uses the local server instead. You only need to do this once. The setup script sets the env vars permanently, so after a restart you may only need `claude --model qwen3:32b`.
 
 ### Manual steps (only if flagged by the script)
 

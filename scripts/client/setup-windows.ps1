@@ -381,6 +381,8 @@ $batchContent = @"
 @echo off
 set ANTHROPIC_BASE_URL=$baseURL
 set ANTHROPIC_API_KEY=ollama
+set ANTHROPIC_AUTH_TOKEN=
+claude /logout >nul 2>&1
 claude --model qwen3:32b %*
 "@
 
