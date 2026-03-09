@@ -386,9 +386,14 @@ function stocky {
     `$env:ANTHROPIC_API_KEY = "ollama"
     `$promptPath = Join-Path `$env:USERPROFILE ".stocky\prompt.txt"
     if (Test-Path `$promptPath) {
-        `$prompt = (Get-Content `$promptPath -Raw) -replace '[\r\n]+', ' '
-        `$claudeArgs = @('--model', 'qwen3:32b', '--append-system-prompt', `$prompt) + `$args
-        & claude @claudeArgs
+        # Strip quotes and newlines, store in env var to bypass PS 5.1 argument splitting bug
+        `$env:_STOCKY_PROMPT = (Get-Content `$promptPath -Raw) -replace '[\r\n]+', ' ' -replace '"', ''
+        if (`$args.Count -gt 0) {
+            `$env:_STOCKY_UARGS = (`$args | ForEach-Object { if (`$_ -match '\s') { '"{0}"' -f `$_ } else { `$_ } }) -join ' '
+            claude --% --model qwen3:32b --append-system-prompt "%_STOCKY_PROMPT%" %_STOCKY_UARGS%
+        } else {
+            claude --% --model qwen3:32b --append-system-prompt "%_STOCKY_PROMPT%"
+        }
     } else {
         Write-Host "Warning: System prompt not found at `$promptPath. Running without it." -ForegroundColor Yellow
         claude --model qwen3:32b @args
