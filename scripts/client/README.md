@@ -54,19 +54,28 @@ Run as **Administrator** for full automation (hosts file, execution policy, glob
 
 ### After setup
 
-1. **Close the setup window**
-2. **Open a new PowerShell window**
-3. Type `stocky` and press Enter
-4. Start chatting with your local AI!
+1. **Fix execution policy** (required once) -- run this in PowerShell:
+   ```powershell
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+   ```
+   Without this, Windows blocks all local scripts (including the `stocky` profile function). You only need to do this once per user account.
+
+2. **Close the setup window**
+3. **Open a new PowerShell window**
+4. Type `stocky` and press Enter
+5. Start chatting with your local AI!
+
+> **Important:** If you skip step 1, you will see an error like: `File Microsoft.PowerShell_profile.ps1 cannot be loaded because running scripts is disabled on this system.` Just run the command above and reopen PowerShell.
 
 ### Manual steps (only if flagged by the script)
 
 1. **Restart PowerShell** -- close and reopen to pick up PATH and profile changes. Then re-run the setup script to verify everything passes.
 
-2. **Execution policy error** -- if `stocky` gives "loading scripts is disabled", run this in PowerShell:
+2. **Execution policy error** -- if `stocky` gives "loading scripts is disabled" or "cannot be loaded because running scripts is disabled", run this in PowerShell:
    ```powershell
-   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
    ```
+   Then close and reopen PowerShell.
 
 3. **Hosts file** (if not admin and `ai.local` doesn't resolve) -- the script auto-detects the server IP on your subnet. If it can't find it, manually add to `C:\Windows\System32\drivers\etc\hosts`:
    ```
