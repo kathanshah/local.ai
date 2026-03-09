@@ -1,11 +1,11 @@
 @echo off
-:: Stocky AI — Windows Client Setup Launcher
+:: Stocky AI -- Windows Client Setup Launcher
 :: Double-click this file to run the setup script.
 :: It launches PowerShell with the correct execution policy.
 
 echo.
 echo ========================================
-echo   Stocky AI — Windows Client Setup
+echo   Stocky AI -- Windows Client Setup
 echo ========================================
 echo.
 echo Starting setup...

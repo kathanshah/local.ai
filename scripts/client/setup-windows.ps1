@@ -1,8 +1,8 @@
-# Stocky AI — Windows Client Setup
+﻿# Stocky AI -- Windows Client Setup
 # Installs Claude Code CLI and configures it to use the local AI server (ai.local).
 #
 # Usage:
-#   Double-click setup-windows.bat (recommended — handles execution policy)
+#   Double-click setup-windows.bat (recommended -- handles execution policy)
 #   Or open PowerShell and run:
 #     powershell -ExecutionPolicy Bypass -File setup-windows.ps1
 #
@@ -64,7 +64,7 @@ function Test-RealPython {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Stocky AI — Windows Client Setup" -ForegroundColor Cyan
+Write-Host "  Stocky AI -- Windows Client Setup" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -217,7 +217,7 @@ if (Test-Command "claude") {
 Write-Step "Installing Python packages for file generation (34 packages)"
 $pipAvailable = $false
 if (Test-RealPython) {
-    # Always use 'python -m pip' — more reliable than bare 'pip' on Windows
+    # Always use 'python -m pip' -- more reliable than bare 'pip' on Windows
     $pipAvailable = $true
 }
 
@@ -316,7 +316,7 @@ if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force |
 
 $stockyFunction = @'
 
-# Stocky AI — local AI assistant (added by setup script)
+# Stocky AI -- local AI assistant (added by setup script)
 function stocky {
     $env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
     $env:ANTHROPIC_API_KEY = "ollama"
@@ -359,7 +359,7 @@ foreach ($check in $checks) {
     if (& $check.Test) {
         Write-OK $check.Name
     } else {
-        Write-Fail "$($check.Name) — needs terminal restart or manual install"
+        Write-Fail "$($check.Name) -- needs terminal restart or manual install"
         $allGood = $false
     }
 }
@@ -368,7 +368,7 @@ foreach ($check in $checks) {
 if ($serverReachable) {
     Write-OK "Server connection"
 } else {
-    Write-Fail "Server connection — see manual steps below"
+    Write-Fail "Server connection -- see manual steps below"
     $allGood = $false
 }
 
@@ -413,7 +413,7 @@ Write-Host ""
     Write-Host "  powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -ForegroundColor White
     Write-Host ""
 } finally {
-    # Always pause — keeps the window open so the user can read output
+    # Always pause -- keeps the window open so the user can read output
     Write-Host ""
     Read-Host "Press Enter to close"
 }
