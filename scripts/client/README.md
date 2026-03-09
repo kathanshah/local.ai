@@ -15,7 +15,7 @@ Client machine                         AI Server (ai.local)
 +------------------+                   +----------------------+
 ```
 
-The AI model runs on the server GPU. Claude Code runs on the client and executes file operations (Excel, PDF, charts, etc.) locally.
+The AI model runs on the server GPU. Claude Code runs on the client and executes file operations (Excel, PDF, charts, etc.) locally. No Ollama install needed on the client -- only the server runs Ollama.
 
 ---
 
@@ -59,31 +59,48 @@ Run as **Administrator** for full automation (hosts file, execution policy, glob
 3. Type `stocky` and press Enter
 4. Start chatting with your local AI!
 
-### Running manually (without the stocky command)
+### First run -- clearing stored credentials
 
-If `stocky` isn't working or you prefer to run claude directly:
-
-If claude asks for a login method, run `claude /logout` first to clear stored cloud credentials, then try again.
+If claude shows a login screen (asking for "Claude account", "Anthropic account", etc.), it has stored credentials from a previous session. Clear them:
 
 **cmd.exe:**
 ```cmd
+del "%USERPROFILE%\.claude\.credentials.json" 2>nul
+del "%USERPROFILE%\.claude\credentials.json" 2>nul
 set ANTHROPIC_BASE_URL=http://ai.local:11434
 set ANTHROPIC_API_KEY=ollama
 set ANTHROPIC_AUTH_TOKEN=
-claude /logout
 claude --model qwen3:32b
 ```
 
 **PowerShell:**
 ```powershell
+Remove-Item "$env:USERPROFILE\.claude\.credentials.json" -ErrorAction SilentlyContinue
+Remove-Item "$env:USERPROFILE\.claude\credentials.json" -ErrorAction SilentlyContinue
 $env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
 $env:ANTHROPIC_API_KEY = "ollama"
 $env:ANTHROPIC_AUTH_TOKEN = ""
-claude /logout
 claude --model qwen3:32b
 ```
 
-The `claude /logout` clears any stored cloud login so claude uses the local server instead. You only need to do this once. The setup script sets the env vars permanently, so after a restart you may only need `claude --model qwen3:32b`.
+You only need to do this once. After credentials are cleared, `stocky` (or `claude --model qwen3:32b`) will connect directly to the local server without asking for login.
+
+### Running manually (without the stocky command)
+
+The setup script sets env vars permanently. After a terminal restart, you can just run:
+
+```
+claude --model qwen3:32b
+```
+
+Or set env vars explicitly in any terminal:
+
+```cmd
+set ANTHROPIC_BASE_URL=http://ai.local:11434
+set ANTHROPIC_API_KEY=ollama
+set ANTHROPIC_AUTH_TOKEN=
+claude --model qwen3:32b
+```
 
 ### Manual steps (only if flagged by the script)
 
@@ -141,6 +158,20 @@ bash scripts/client/setup-mac.sh
 2. Type `stocky` and press Enter
 3. Start chatting with your local AI!
 
+### First run -- clearing stored credentials
+
+If claude shows a login screen, clear stored credentials:
+
+```bash
+rm -f ~/.claude/.credentials.json ~/.claude/credentials.json
+export ANTHROPIC_BASE_URL="http://ai.local:11434"
+export ANTHROPIC_API_KEY="ollama"
+export ANTHROPIC_AUTH_TOKEN=""
+claude --model qwen3:32b
+```
+
+You only need to do this once.
+
 ### Manual steps (only if flagged by the script)
 
 1. **Restart terminal** -- close and reopen to pick up PATH and alias changes. Then re-run the setup script to verify everything passes.
@@ -154,7 +185,7 @@ bash scripts/client/setup-mac.sh
 
 ## Usage
 
-After setup, open a **new terminal** (PowerShell on Windows, Terminal on Mac) and run:
+After setup, open a **new terminal** and run:
 
 ```
 stocky                                  # Interactive session
@@ -179,9 +210,9 @@ All file operations run locally on the client. The server only provides AI infer
 
 | Problem | Fix |
 |---------|-----|
+| Claude asks for login | Delete `~/.claude/.credentials.json` and `~/.claude/credentials.json`, then set env vars (see "First run" above) |
 | `ai.local` doesn't resolve | Re-run setup script -- it auto-detects the server IP. Or manually add to hosts file |
 | `stocky` not found | Close and reopen terminal to pick up PATH changes |
-| "Both a token and an API key are set" | Run `claude /logout` to clear old cloud login |
 | `weasyprint`/`cairosvg` errors | Windows: install GTK3 runtime. Mac: `brew install cairo pango gdk-pixbuf libffi` |
 | pip "externally-managed-environment" | Mac: re-run script (auto-detects `--break-system-packages`) |
 | Connection timeout | Check server is on, same network, Ollama running |

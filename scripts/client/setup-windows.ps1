@@ -345,29 +345,19 @@ if (-not $promptDownloaded) {
 
 # --- 10. Clear old claude.ai login if present ---
 
-Write-Step "Checking for existing claude.ai login"
-if (Test-Command "claude") {
-    $claudeDir = Join-Path $env:USERPROFILE ".claude"
-    $hasToken = $false
-    if (Test-Path (Join-Path $claudeDir ".credentials.json")) { $hasToken = $true }
-    if (Test-Path (Join-Path $claudeDir "credentials.json")) { $hasToken = $true }
-
-    if ($hasToken) {
-        Write-Host "    Found existing claude.ai credentials. Clearing to avoid conflicts..." -ForegroundColor White
-        # Temporarily clear env vars so claude /logout talks to Anthropic, not Ollama
-        $savedBase = $env:ANTHROPIC_BASE_URL
-        $savedKey = $env:ANTHROPIC_API_KEY
-        Remove-Item Env:ANTHROPIC_BASE_URL -ErrorAction SilentlyContinue
-        Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
-        claude /logout 2>&1 | Out-Null
-        $env:ANTHROPIC_BASE_URL = $savedBase
-        $env:ANTHROPIC_API_KEY = $savedKey
-        Write-OK "Cleared old claude.ai login"
-    } else {
-        Write-Skip "No existing claude.ai login found"
+Write-Step "Clearing stored claude.ai credentials"
+$claudeDir = Join-Path $env:USERPROFILE ".claude"
+$cleared = $false
+foreach ($credFile in @(".credentials.json", "credentials.json")) {
+    $credPath = Join-Path $claudeDir $credFile
+    if (Test-Path $credPath) {
+        Remove-Item $credPath -Force
+        Write-OK "Deleted $credFile"
+        $cleared = $true
     }
-} else {
-    Write-Skip "Claude not installed yet, skipping"
+}
+if (-not $cleared) {
+    Write-Skip "No stored credentials found"
 }
 
 # --- 11. Create 'stocky' batch command ---
@@ -379,10 +369,11 @@ $stockyCmd = Join-Path $stockyDir "stocky.cmd"
 # Create stocky.cmd batch file (avoids PowerShell argument-splitting bugs)
 $batchContent = @"
 @echo off
+del "%USERPROFILE%\.claude\.credentials.json" 2>nul
+del "%USERPROFILE%\.claude\credentials.json" 2>nul
 set ANTHROPIC_BASE_URL=$baseURL
 set ANTHROPIC_API_KEY=ollama
 set ANTHROPIC_AUTH_TOKEN=
-claude /logout >nul 2>&1
 claude --model qwen3:32b %*
 "@
 
