@@ -76,6 +76,24 @@ if (-not $isAdmin) {
     Write-Host "      Re-run as Administrator for full automation." -ForegroundColor DarkYellow
 }
 
+# --- Set execution policy so PowerShell profile can load ---
+
+Write-Step "Checking PowerShell execution policy"
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+    Write-Host "    Current policy: $currentPolicy (blocks profile scripts)" -ForegroundColor White
+    Write-Host "    Setting to RemoteSigned for current user..." -ForegroundColor White
+    try {
+        Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        Write-OK "Execution policy set to RemoteSigned"
+    } catch {
+        Write-Fail "Could not set execution policy. Run this manually in PowerShell:"
+        Write-Host "    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor White
+    }
+} else {
+    Write-OK "Execution policy is $currentPolicy (OK)"
+}
+
 # --- 1. Check winget availability ---
 
 Write-Step "Checking winget (Windows package manager)"
@@ -398,7 +416,7 @@ $checks = @(
     @{ Name = "Python";        Test = { Test-RealPython } },
     @{ Name = "Claude Code";   Test = { Test-Command "claude" } },
     @{ Name = "System prompt"; Test = { $p = Join-Path $env:USERPROFILE ".stocky\prompt.txt"; (Test-Path $p) -and ((Get-Item $p -ErrorAction SilentlyContinue).Length -gt 0) } },
-    @{ Name = "Env vars";      Test = { $env:ANTHROPIC_BASE_URL -eq "http://ai.local:11434" } }
+    @{ Name = "Env vars";      Test = { $env:ANTHROPIC_BASE_URL -eq $baseURL } }
 )
 
 foreach ($check in $checks) {
@@ -434,18 +452,25 @@ if ($allGood) {
 Write-Host ""
 Write-Host "MANUAL STEPS (only if flagged above):" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  1. Restart your terminal to pick up PATH changes" -ForegroundColor White
+Write-Host "  1. Close and reopen PowerShell to pick up PATH and profile changes." -ForegroundColor White
 Write-Host "     Then re-run this script to verify everything passes." -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "  2. If ai.local still doesn't resolve, run as Administrator:" -ForegroundColor White
+Write-Host "  2. If 'stocky' gives a script loading error, run this in PowerShell:" -ForegroundColor White
+Write-Host "     Set-ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor White
+Write-Host ""
+Write-Host "  3. If ai.local doesn't resolve, run as Administrator:" -ForegroundColor White
 Write-Host "     Add-Content $env:SystemRoot\System32\drivers\etc\hosts '192.168.29.100  ai.local'" -ForegroundColor White
 Write-Host ""
-Write-Host "  3. If 'weasyprint' fails (HTML-to-PDF), install GTK3 runtime:" -ForegroundColor White
+Write-Host "  4. If 'weasyprint' fails (HTML-to-PDF) or 'cairosvg' fails (SVG):" -ForegroundColor White
+Write-Host "     Install GTK3 runtime from:" -ForegroundColor White
 Write-Host "     https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases" -ForegroundColor White
 Write-Host ""
-Write-Host "  4. If 'cairosvg' fails (SVG conversion), same GTK3 runtime fixes it." -ForegroundColor White
+Write-Host "NEXT STEPS:" -ForegroundColor Cyan
+Write-Host "  1. Close this window and open a new PowerShell" -ForegroundColor White
+Write-Host "  2. Type: stocky" -ForegroundColor White
+Write-Host "  3. Start chatting with your local AI!" -ForegroundColor White
 Write-Host ""
-Write-Host "USAGE:" -ForegroundColor Cyan
+Write-Host "EXAMPLES:" -ForegroundColor Cyan
 Write-Host "  stocky                                  # Interactive session" -ForegroundColor White
 Write-Host "  stocky -p `"create a report.xlsx`"        # One-shot command" -ForegroundColor White
 Write-Host "  cat data.csv | stocky -p `"analyze this`" # Pipe data in" -ForegroundColor White

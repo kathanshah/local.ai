@@ -1,18 +1,18 @@
 # Client Setup Scripts
 
-Setup scripts for connecting Windows and macOS machines to the Stocky AI server. No accounts or server-side setup needed — any device on the local network can connect.
+Setup scripts for connecting Windows and macOS machines to the Stocky AI server. No accounts or server-side setup needed -- any device on the local network can connect.
 
 ## How It Works
 
 ```
 Client machine                         AI Server (ai.local)
-┌─────────────────┐                    ┌─────────────────────┐
-│ stocky command   │───── HTTP ────────▶│ Ollama API :11434   │
-│ (Claude Code CLI)│                    │ Qwen3-32B on GPU    │
-│                  │                    │                     │
-│ Files created    │                    │ AI inference only   │
-│ locally on client│                    │ No data stored      │
-└─────────────────┘                    └─────────────────────┘
++------------------+                   +----------------------+
+| stocky command   |------ HTTP ------>| Ollama API :11434    |
+| (Claude Code CLI)|                   | Qwen3-32B on GPU     |
+|                  |                   |                      |
+| Files created    |                   | AI inference only    |
+| locally on client|                   | No data stored       |
++------------------+                   +----------------------+
 ```
 
 The AI model runs on the server GPU. Claude Code runs on the client and executes file operations (Excel, PDF, charts, etc.) locally.
@@ -25,36 +25,56 @@ The AI model runs on the server GPU. Claude Code runs on the client and executes
 
 - Windows 10 or 11
 - PowerShell 5.1+
-- [winget](https://apps.microsoft.com/detail/9nblggh4nns1) (App Installer — pre-installed on Windows 11, install from Microsoft Store on Windows 10)
+- [winget](https://apps.microsoft.com/detail/9nblggh4nns1) (App Installer -- pre-installed on Windows 11, install from Microsoft Store on Windows 10)
 
 ### Run
 
 Copy the `client` folder (or at minimum `setup-windows.bat` + `setup-windows.ps1`) to the client machine, then:
 
-**Option A — Double-click** `setup-windows.bat` (easiest, handles execution policy automatically)
+**Option A -- Double-click** `setup-windows.bat` (easiest, handles execution policy automatically)
 
-**Option B — PowerShell manually:**
+**Option B -- PowerShell manually:**
 ```powershell
 powershell -ExecutionPolicy Bypass -File setup-windows.ps1
 ```
 
-Run as **Administrator** for full automation (hosts file, global installs). Without admin, the script still works but may flag manual steps.
+Run as **Administrator** for full automation (hosts file, execution policy, global installs). Without admin, the script still works but may flag manual steps.
 
 ### What it installs
 
 | Component | Method |
 |-----------|--------|
+| Execution policy (RemoteSigned) | PowerShell |
 | Git | winget |
 | Node.js LTS | winget |
 | Python 3.12 | winget |
 | Claude Code CLI | npm |
 | 34 Python packages | pip |
+| `stocky` command | PowerShell profile |
 
-### Manual steps after script (only if flagged)
+### After setup
 
-1. **Restart terminal** — PATH changes from installs need a new PowerShell window
-2. **Hosts file** (if not admin and mDNS fails) — add `192.168.29.100  ai.local` to the hosts file (the script prints the exact path)
-3. **GTK3 runtime** (optional) — needed only if `weasyprint` or `cairosvg` fails. Download from [GTK for Windows](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases)
+1. **Close the setup window**
+2. **Open a new PowerShell window**
+3. Type `stocky` and press Enter
+4. Start chatting with your local AI!
+
+### Manual steps (only if flagged by the script)
+
+1. **Restart PowerShell** -- close and reopen to pick up PATH and profile changes. Then re-run the setup script to verify everything passes.
+
+2. **Execution policy error** -- if `stocky` gives "loading scripts is disabled", run this in PowerShell:
+   ```powershell
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
+3. **Hosts file** (if not admin and `ai.local` doesn't resolve) -- the script auto-detects the server IP on your subnet. If it can't find it, manually add to `C:\Windows\System32\drivers\etc\hosts`:
+   ```
+   192.168.29.100  ai.local
+   ```
+   (Replace with the actual server IP if on a different subnet)
+
+4. **GTK3 runtime** (optional) -- needed only if `weasyprint` (HTML-to-PDF) or `cairosvg` (SVG conversion) fails. Download from [GTK for Windows](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases)
 
 ---
 
@@ -92,28 +112,36 @@ bash scripts/client/setup-mac.sh
 | Claude Code CLI | npm |
 | Cairo, Pango, etc. | brew (for PDF/SVG rendering) |
 | 34 Python packages | pip3 |
+| `stocky` command | shell alias in ~/.zshrc |
 
-### Manual steps after script (only if flagged)
+### After setup
 
-1. **Restart terminal** — PATH and alias changes need a new shell
-2. **Hosts file** (rare — macOS resolves `.local` via Bonjour automatically) — `sudo sh -c 'echo "192.168.29.100  ai.local" >> /etc/hosts'`
+1. **Close Terminal and open a new one**
+2. Type `stocky` and press Enter
+3. Start chatting with your local AI!
+
+### Manual steps (only if flagged by the script)
+
+1. **Restart terminal** -- close and reopen to pick up PATH and alias changes. Then re-run the setup script to verify everything passes.
+
+2. **Hosts file** (rare -- macOS resolves `.local` via Bonjour automatically) -- the script auto-detects the server IP and updates `/etc/hosts` if needed. If it can't find the server:
+   ```bash
+   sudo sh -c 'echo "192.168.29.100  ai.local" >> /etc/hosts'
+   ```
 
 ---
 
 ## Usage
 
-After setup, run `stocky` from any terminal:
+After setup, open a **new terminal** (PowerShell on Windows, Terminal on Mac) and run:
 
-```bash
-# Interactive session
-stocky
-
-# One-shot command
-stocky -p "create a report.xlsx with Q1 sales data"
-
-# Pipe data in
-cat data.csv | stocky -p "analyze this and find outliers"
 ```
+stocky                                  # Interactive session
+stocky -p "create a report.xlsx"        # One-shot command
+cat data.csv | stocky -p "analyze this" # Pipe data in
+```
+
+> **Windows note:** `stocky` only works in PowerShell, not cmd.exe.
 
 ## What clients can do
 
@@ -130,10 +158,12 @@ All file operations run locally on the client. The server only provides AI infer
 
 | Problem | Fix |
 |---------|-----|
-| `ai.local` doesn't resolve | Add `192.168.29.100  ai.local` to hosts file |
-| "Both a token and an API key are set" warning | Run `claude /logout` to clear old cloud login |
-| `weasyprint`/`cairosvg` import errors | Windows: install GTK3 runtime. Mac: `brew install cairo pango gdk-pixbuf libffi` |
-| pip fails with "externally-managed-environment" | Mac: re-run script (auto-detects and adds `--break-system-packages`) |
-| `stocky` command not found | Restart terminal, or run `source ~/.zshrc` (Mac) / `. $PROFILE` (Windows) |
-| Connection timeout | Check server is on, same network (192.168.29.x), Ollama running |
-| Python detected but not real (Windows) | Disable the Windows Store "app execution aliases" for Python in Settings > Apps > Advanced app settings > App execution aliases |
+| `ai.local` doesn't resolve | Re-run setup script -- it auto-detects the server IP. Or manually add to hosts file |
+| "loading scripts is disabled" (Windows) | `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
+| `stocky` not found | Close and reopen terminal. Windows: `. $PROFILE` / Mac: `source ~/.zshrc` |
+| "Both a token and an API key are set" | Run `claude /logout` to clear old cloud login |
+| `weasyprint`/`cairosvg` errors | Windows: install GTK3 runtime. Mac: `brew install cairo pango gdk-pixbuf libffi` |
+| pip "externally-managed-environment" | Mac: re-run script (auto-detects `--break-system-packages`) |
+| Connection timeout | Check server is on, same network, Ollama running |
+| Python detected but not real (Windows) | Disable Windows Store Python aliases in Settings > Apps > Advanced app settings > App execution aliases |
+| Server IP changed (moved networks) | Re-run the setup script -- it scans for the server and updates everything |
