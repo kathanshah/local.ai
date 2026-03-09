@@ -343,21 +343,25 @@ if (-not $promptDownloaded) {
     Write-Fail "Could not download prompt. Copy scripts/stocky-prompt.txt from the server to: $promptFile"
 }
 
-# --- 10. Clear old claude.ai login if present ---
+# --- 10. Set up claude credentials for local Ollama ---
 
-Write-Step "Clearing stored claude.ai credentials"
+Write-Step "Configuring Claude Code credentials for local server"
 $claudeDir = Join-Path $env:USERPROFILE ".claude"
-$cleared = $false
-foreach ($credFile in @(".credentials.json", "credentials.json")) {
-    $credPath = Join-Path $claudeDir $credFile
-    if (Test-Path $credPath) {
-        Remove-Item $credPath -Force
-        Write-OK "Deleted $credFile"
-        $cleared = $true
-    }
-}
-if (-not $cleared) {
-    Write-Skip "No stored credentials found"
+if (-not (Test-Path $claudeDir)) { New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null }
+
+# Write a credentials file that tells Claude Code to use API key auth (skips login screen)
+$credPath = Join-Path $claudeDir ".credentials.json"
+$credContent = '{"apiKey":"ollama"}'
+Set-Content -Path $credPath -Value $credContent -Encoding UTF8
+Write-OK "Created .credentials.json for local Ollama auth"
+
+# Also create settings.json if it doesn't exist
+$settingsPath = Join-Path $claudeDir "settings.json"
+if (-not (Test-Path $settingsPath)) {
+    Set-Content -Path $settingsPath -Value '{}' -Encoding UTF8
+    Write-OK "Created settings.json"
+} else {
+    Write-Skip "settings.json already exists"
 }
 
 # --- 11. Create 'stocky' batch command ---
@@ -369,8 +373,6 @@ $stockyCmd = Join-Path $stockyDir "stocky.cmd"
 # Create stocky.cmd batch file (avoids PowerShell argument-splitting bugs)
 $batchContent = @"
 @echo off
-del "%USERPROFILE%\.claude\.credentials.json" 2>nul
-del "%USERPROFILE%\.claude\credentials.json" 2>nul
 set ANTHROPIC_BASE_URL=$baseURL
 set ANTHROPIC_API_KEY=ollama
 set ANTHROPIC_AUTH_TOKEN=
