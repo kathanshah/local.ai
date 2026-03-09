@@ -370,52 +370,44 @@ if (Test-Command "claude") {
     Write-Skip "Claude not installed yet, skipping"
 }
 
-# --- 11. Create 'stocky' command in PowerShell profile ---
+# --- 11. Create 'stocky' batch command ---
 
-Write-Step "Setting up 'stocky' command in PowerShell profile"
-$profileDir = Split-Path $PROFILE -Parent
-if (-not (Test-Path $profileDir)) { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
-if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }
+Write-Step "Setting up 'stocky' command"
+$stockyDir = Join-Path $env:USERPROFILE ".stocky"
+$stockyCmd = Join-Path $stockyDir "stocky.cmd"
 
-# Build the stocky function with the correct server address baked in
-$stockyFunction = @"
-
-# Stocky AI -- local AI assistant (added by setup script)
-function stocky {
-    `$env:ANTHROPIC_BASE_URL = "$baseURL"
-    `$env:ANTHROPIC_API_KEY = "ollama"
-    `$promptPath = Join-Path `$env:USERPROFILE ".stocky\prompt.txt"
-    if (Test-Path `$promptPath) {
-        # Strip quotes and newlines, store in env var to bypass PS 5.1 argument splitting bug
-        `$env:_STOCKY_PROMPT = (Get-Content `$promptPath -Raw) -replace '[\r\n]+', ' ' -replace '"', ''
-        if (`$args.Count -gt 0) {
-            `$env:_STOCKY_UARGS = (`$args | ForEach-Object { if (`$_ -match '\s') { '"{0}"' -f `$_ } else { `$_ } }) -join ' '
-            claude --% --model qwen3:32b --append-system-prompt "%_STOCKY_PROMPT%" %_STOCKY_UARGS%
-        } else {
-            claude --% --model qwen3:32b --append-system-prompt "%_STOCKY_PROMPT%"
-        }
-    } else {
-        Write-Host "Warning: System prompt not found at `$promptPath. Running without it." -ForegroundColor Yellow
-        claude --model qwen3:32b @args
-    }
-}
+# Create stocky.cmd batch file (avoids PowerShell argument-splitting bugs)
+$batchContent = @"
+@echo off
+set ANTHROPIC_BASE_URL=$baseURL
+set ANTHROPIC_API_KEY=ollama
+claude --model qwen3:32b %*
 "@
 
-$profileContent = ""
-if (Test-Path $PROFILE) { $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue }
-if ($profileContent -and $profileContent -match "function stocky") {
-    # Remove old stocky function block and replace with updated version
-    $cleaned = $profileContent -replace '(?ms)\r?\n?# Stocky AI -- local AI assistant[^\n]*\r?\nfunction stocky \{.*?\n\}', ''
-    # Also handle case where comment line is missing
-    if ($cleaned -match "function stocky") {
-        $cleaned = $cleaned -replace '(?ms)\r?\n?function stocky \{.*?\n\}', ''
-    }
-    Set-Content -Path $PROFILE -Value $cleaned.TrimEnd() -NoNewline
-    Add-Content -Path $PROFILE -Value $stockyFunction
-    Write-OK "Updated 'stocky' function in $PROFILE"
+Set-Content -Path $stockyCmd -Value $batchContent -Encoding ASCII
+Write-OK "Created $stockyCmd"
+
+# Add ~/.stocky to user PATH if not already there
+$userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+if ($userPath -notmatch [regex]::Escape($stockyDir)) {
+    [System.Environment]::SetEnvironmentVariable("Path", "$userPath;$stockyDir", "User")
+    $env:Path = "$env:Path;$stockyDir"
+    Write-OK "Added $stockyDir to user PATH"
 } else {
-    Add-Content -Path $PROFILE -Value $stockyFunction
-    Write-OK "Added 'stocky' function to $PROFILE"
+    Write-Skip "$stockyDir already in PATH"
+}
+
+# Clean up old PowerShell profile function if present
+if (Test-Path $PROFILE) {
+    $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
+    if ($profileContent -and $profileContent -match "function stocky") {
+        $cleaned = $profileContent -replace '(?ms)\r?\n?# Stocky AI -- local AI assistant[^\n]*\r?\nfunction stocky \{.*?\n\}', ''
+        if ($cleaned -match "function stocky") {
+            $cleaned = $cleaned -replace '(?ms)\r?\n?function stocky \{.*?\n\}', ''
+        }
+        Set-Content -Path $PROFILE -Value $cleaned.TrimEnd() -NoNewline
+        Write-OK "Removed old stocky function from PowerShell profile"
+    }
 }
 
 # --- 12. Verify setup ---
@@ -429,6 +421,7 @@ $checks = @(
     @{ Name = "Node.js";       Test = { Test-Command "node" } },
     @{ Name = "Python";        Test = { Test-RealPython } },
     @{ Name = "Claude Code";   Test = { Test-Command "claude" } },
+    @{ Name = "stocky.cmd";    Test = { Test-Path (Join-Path $env:USERPROFILE ".stocky\stocky.cmd") } },
     @{ Name = "System prompt"; Test = { $p = Join-Path $env:USERPROFILE ".stocky\prompt.txt"; (Test-Path $p) -and ((Get-Item $p -ErrorAction SilentlyContinue).Length -gt 0) } },
     @{ Name = "Env vars";      Test = { $env:ANTHROPIC_BASE_URL -eq $baseURL } }
 )
@@ -466,23 +459,26 @@ if ($allGood) {
 Write-Host ""
 Write-Host "MANUAL STEPS (only if flagged above):" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  1. Close and reopen PowerShell to pick up PATH and profile changes." -ForegroundColor White
+Write-Host "  1. Close and reopen your terminal to pick up PATH changes." -ForegroundColor White
 Write-Host "     Then re-run this script to verify everything passes." -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "  2. If 'stocky' gives a script loading error, run this in PowerShell:" -ForegroundColor White
-Write-Host "     Set-ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor White
-Write-Host ""
-Write-Host "  3. If ai.local doesn't resolve, run as Administrator:" -ForegroundColor White
+Write-Host "  2. If ai.local doesn't resolve, run as Administrator:" -ForegroundColor White
 Write-Host "     Add-Content $env:SystemRoot\System32\drivers\etc\hosts '192.168.29.100  ai.local'" -ForegroundColor White
 Write-Host ""
-Write-Host "  4. If 'weasyprint' fails (HTML-to-PDF) or 'cairosvg' fails (SVG):" -ForegroundColor White
+Write-Host "  3. If 'weasyprint' fails (HTML-to-PDF) or 'cairosvg' fails (SVG):" -ForegroundColor White
 Write-Host "     Install GTK3 runtime from:" -ForegroundColor White
 Write-Host "     https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases" -ForegroundColor White
 Write-Host ""
 Write-Host "NEXT STEPS:" -ForegroundColor Cyan
-Write-Host "  1. Close this window and open a new PowerShell" -ForegroundColor White
-Write-Host "  2. Type: stocky" -ForegroundColor White
-Write-Host "  3. Start chatting with your local AI!" -ForegroundColor White
+Write-Host "  1. Close this window" -ForegroundColor White
+Write-Host "  2. Open any terminal (PowerShell or cmd.exe)" -ForegroundColor White
+Write-Host "  3. Type: stocky" -ForegroundColor White
+Write-Host "  4. Start chatting with your local AI!" -ForegroundColor White
+Write-Host ""
+Write-Host "MANUAL COMMAND (if stocky doesn't work):" -ForegroundColor Cyan
+Write-Host "  set ANTHROPIC_BASE_URL=$baseURL" -ForegroundColor White
+Write-Host "  set ANTHROPIC_API_KEY=ollama" -ForegroundColor White
+Write-Host "  claude --model qwen3:32b" -ForegroundColor White
 Write-Host ""
 Write-Host "EXAMPLES:" -ForegroundColor Cyan
 Write-Host "  stocky                                  # Interactive session" -ForegroundColor White
