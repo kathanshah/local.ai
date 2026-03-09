@@ -378,23 +378,18 @@ if [ "$PROMPT_DOWNLOADED" = false ]; then
     ERRORS=$((ERRORS + 1))
 fi
 
-# --- 11. Clear old claude.ai login if present ---
+# --- 11. Set up claude credentials for local Ollama ---
 
-step "Checking for existing claude.ai login"
-if command -v claude &> /dev/null; then
-    if [ -f "$HOME/.claude/.credentials.json" ] || [ -f "$HOME/.claude/credentials.json" ]; then
-        info "Found existing claude.ai credentials. Clearing to avoid conflicts..."
-        # Unset env vars so claude /logout talks to Anthropic's servers, not Ollama
-        (
-            unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY
-            claude /logout 2>/dev/null
-        )
-        ok "Cleared old claude.ai login"
-    else
-        skip "No existing claude.ai login found"
-    fi
+step "Configuring Claude Code credentials for local server"
+mkdir -p "$HOME/.claude"
+echo '{"apiKey":"ollama"}' > "$HOME/.claude/.credentials.json"
+ok "Created .credentials.json for local Ollama auth"
+
+if [ ! -f "$HOME/.claude/settings.json" ]; then
+    echo '{}' > "$HOME/.claude/settings.json"
+    ok "Created settings.json"
 else
-    skip "Claude not installed yet, skipping"
+    skip "settings.json already exists"
 fi
 
 # --- 12. Create 'stocky' alias ---
