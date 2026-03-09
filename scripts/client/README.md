@@ -92,7 +92,7 @@ Run as **Administrator** for full automation (hosts file, execution policy, glob
           $env:ANTHROPIC_API_KEY = "ollama"
           $promptPath = Join-Path $env:USERPROFILE ".stocky\prompt.txt"
           if (Test-Path $promptPath) {
-              $prompt = Get-Content $promptPath -Raw
+              $prompt = (Get-Content $promptPath -Raw) -replace '[\r\n]+', ' '
               $claudeArgs = @('--model', 'qwen3:32b', '--append-system-prompt', $prompt) + $args
               & claude @claudeArgs
           } else {
