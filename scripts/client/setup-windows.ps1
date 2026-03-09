@@ -2,7 +2,7 @@
 # Installs Claude Code CLI and configures it to use the local AI server (ai.local).
 #
 # Usage:
-#   Right-click this file → "Run with PowerShell" (may need admin)
+#   Double-click setup-windows.bat (recommended — handles execution policy)
 #   Or open PowerShell and run:
 #     powershell -ExecutionPolicy Bypass -File setup-windows.ps1
 #
@@ -18,25 +18,9 @@
 #   9. Adds hosts file entry if mDNS fails (requires admin)
 #  10. Verifies the full setup
 
-# Keep the window open on any error or early exit
-trap { Write-Host "`n$_" -ForegroundColor Red; Read-Host "`nPress Enter to close"; exit 1 }
-
 $ErrorActionPreference = "Continue"
 
-# If execution policy blocks us, re-launch with Bypass
-if (-not ([System.Management.Automation.PSTypeName]'System.Net.WebClient').Type) {
-    # Sanity check — if basic .NET types aren't available, something is very wrong
-    Write-Host "ERROR: PowerShell environment issue. Try running:" -ForegroundColor Red
-    Write-Host "  powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -ForegroundColor White
-    Read-Host "`nPress Enter to close"
-    exit 1
-}
-
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Stocky AI — Windows Client Setup" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
+try {
 
 # --- Helper functions ---
 
@@ -78,6 +62,12 @@ function Test-RealPython {
     }
 }
 
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  Stocky AI — Windows Client Setup" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+
 # --- Check if running as admin ---
 
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -96,7 +86,7 @@ if (Test-Command "winget") {
     Write-Host "    https://apps.microsoft.com/detail/9nblggh4nns1" -ForegroundColor White
     Write-Host "    After installing winget, re-run this script." -ForegroundColor White
     Read-Host "`nPress Enter to close"
-    exit 1
+    return
 }
 
 # --- 2. Check network connectivity to ai.local ---
@@ -149,7 +139,7 @@ try {
 
     if (-not $serverReachable) {
         $continue = Read-Host "    Continue anyway? (y/N)"
-        if ($continue -ne "y") { Read-Host "`nPress Enter to close"; exit 1 }
+        if ($continue -ne "y") { return }
     }
 }
 
@@ -414,4 +404,16 @@ Write-Host "  stocky                                  # Interactive session" -Fo
 Write-Host "  stocky -p `"create a report.xlsx`"        # One-shot command" -ForegroundColor White
 Write-Host "  cat data.csv | stocky -p `"analyze this`" # Pipe data in" -ForegroundColor White
 Write-Host ""
-Read-Host "Press Enter to close"
+
+} catch {
+    Write-Host ""
+    Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "If this keeps happening, open PowerShell manually and run:" -ForegroundColor White
+    Write-Host "  powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -ForegroundColor White
+    Write-Host ""
+} finally {
+    # Always pause — keeps the window open so the user can read output
+    Write-Host ""
+    Read-Host "Press Enter to close"
+}

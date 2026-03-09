@@ -29,8 +29,11 @@ The AI model runs on the server GPU. Claude Code runs on the client and executes
 
 ### Run
 
-Copy `setup-windows.ps1` to the client machine, then run in PowerShell:
+Copy the `client` folder (or at minimum `setup-windows.bat` + `setup-windows.ps1`) to the client machine, then:
 
+**Option A — Double-click** `setup-windows.bat` (easiest, handles execution policy automatically)
+
+**Option B — PowerShell manually:**
 ```powershell
 powershell -ExecutionPolicy Bypass -File setup-windows.ps1
 ```
