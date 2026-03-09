@@ -46,7 +46,7 @@ For power users who prefer the command line. The CLI can do everything the brows
 | Create a presentation | `stocky -p "create ~/status.pptx — 8 slides on project progress"` |
 | Merge PDFs | `stocky -p "merge all PDFs in ~/invoices/ into ~/combined.pdf"` |
 
-**Setup:** See [CLI setup guide](docs/cli-tools.md) — takes 5 minutes. Works on Windows, Mac, and Linux.
+**Setup:** Run the automated setup script for your platform — [Windows](scripts/client/setup-windows.ps1) or [Mac](scripts/client/setup-mac.sh). See [client README](scripts/client/README.md) for details, or [full CLI guide](docs/cli-tools.md) for manual setup.
 
 ## What Stocky Can't Do
 
@@ -85,7 +85,7 @@ One request is processed at a time. If someone else is using Stocky, yours queue
 | What | How | Setup needed? |
 |------|-----|---------------|
 | **Browser chat** | http://ai.local | No — just open the URL |
-| **Terminal CLI** | Run `stocky` in your terminal | Yes — [5-minute setup](docs/cli-tools.md) |
+| **Terminal CLI** | Run `stocky` in your terminal | Yes — run [setup script](scripts/client/README.md) |
 | From Windows/Mac/Linux | Both methods work on all platforms | |
 | From phone/tablet | Browser chat — works on mobile browsers | |
 

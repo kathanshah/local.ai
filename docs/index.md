@@ -37,6 +37,9 @@ All scripts are in [`../scripts/`](../scripts/). On the server they're also at `
 | [toggle-parallel.sh](../scripts/toggle-parallel.sh) | Switch between 1×32K and 2×16K parallel modes | `bash scripts/toggle-parallel.sh` |
 | [claude-local.sh](../scripts/claude-local.sh) | Run Claude Code with local Ollama (free, private) | `bash scripts/claude-local.sh` |
 | [stocky-prompt.txt](../scripts/stocky-prompt.txt) | System prompt for local model — maps tasks to Python packages | Used by claude-local.sh and client alias |
+| [client/setup-windows.ps1](../scripts/client/setup-windows.ps1) | Automated Windows client setup (Git, Node, Python, Claude Code, packages) | `powershell -ExecutionPolicy Bypass -File setup-windows.ps1` |
+| [client/setup-mac.sh](../scripts/client/setup-mac.sh) | Automated macOS client setup (Homebrew, Node, Python, Claude Code, packages) | `bash scripts/client/setup-mac.sh` |
+| [client/README.md](../scripts/client/README.md) | Client setup guide — requirements, usage, troubleshooting | |
 
 ## Quick Commands
 

@@ -38,6 +38,8 @@ All in `scripts/`. Run from repo root with `bash scripts/<name>.sh`.
 | `change-network.sh` | Switch WiFi/Ethernet/DHCP, auto-updates firewall + mDNS |
 | `backup-config.sh` | Backup config files to `/mnt/ai-models/backups/` |
 | `claude-local.sh` | Run Claude Code CLI using local Ollama (free, private) |
+| `client/setup-windows.ps1` | Automated client setup for Windows (installs Claude Code, Python, packages) |
+| `client/setup-mac.sh` | Automated client setup for macOS (installs Claude Code, Python, packages) |
 
 ## Key Documentation
 
