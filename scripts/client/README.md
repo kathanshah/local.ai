@@ -83,7 +83,31 @@ Run as **Administrator** for full automation (hosts file, execution policy, glob
    ```
    (Replace with the actual server IP if on a different subnet)
 
-4. **GTK3 runtime** (optional) -- needed only if `weasyprint` (HTML-to-PDF) or `cairosvg` (SVG conversion) fails. Download from [GTK for Windows](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases)
+4. **"unknown option '-36px'" error** -- if `stocky` gives `error: unknown option '-36px'` (or similar), the PowerShell profile has an older stocky function that doesn't pass the system prompt correctly. Fix it:
+   1. Open PowerShell and run: `notepad $PROFILE`
+   2. Find the `function stocky {` block and replace it with:
+      ```powershell
+      function stocky {
+          $env:ANTHROPIC_BASE_URL = "http://ai.local:11434"
+          $env:ANTHROPIC_API_KEY = "ollama"
+          $promptPath = Join-Path $env:USERPROFILE ".stocky\prompt.txt"
+          if (Test-Path $promptPath) {
+              $prompt = Get-Content $promptPath -Raw
+              $claudeArgs = @('--model', 'qwen3:32b', '--append-system-prompt', $prompt) + $args
+              & claude @claudeArgs
+          } else {
+              Write-Host "Warning: System prompt not found at $promptPath. Running without it." -ForegroundColor Yellow
+              claude --model qwen3:32b @args
+          }
+      }
+      ```
+      (Replace `http://ai.local:11434` with your server's actual address if different)
+   3. Save, close notepad, close and reopen PowerShell
+   4. Run `stocky` again
+
+   Alternatively, re-run the setup script -- it will detect and update the old function automatically.
+
+5. **GTK3 runtime** (optional) -- needed only if `weasyprint` (HTML-to-PDF) or `cairosvg` (SVG conversion) fails. Download from [GTK for Windows](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases)
 
 ---
 

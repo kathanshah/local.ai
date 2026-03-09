@@ -1,4 +1,4 @@
-﻿# Stocky AI -- Windows Client Setup
+﻿﻿﻿# Stocky AI -- Windows Client Setup
 # Installs Claude Code CLI and configures it to use the local AI server (ai.local).
 #
 # Usage:
@@ -387,7 +387,8 @@ function stocky {
     `$promptPath = Join-Path `$env:USERPROFILE ".stocky\prompt.txt"
     if (Test-Path `$promptPath) {
         `$prompt = Get-Content `$promptPath -Raw
-        claude --model qwen3:32b --append-system-prompt "`$prompt" @args
+        `$claudeArgs = @('--model', 'qwen3:32b', '--append-system-prompt', `$prompt) + `$args
+        & claude @claudeArgs
     } else {
         Write-Host "Warning: System prompt not found at `$promptPath. Running without it." -ForegroundColor Yellow
         claude --model qwen3:32b @args
@@ -397,11 +398,29 @@ function stocky {
 
 $profileContent = ""
 if (Test-Path $PROFILE) { $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue }
-if (-not $profileContent -or $profileContent -notmatch "function stocky") {
+if ($profileContent -and $profileContent -match "function stocky") {
+    # Remove old stocky function and replace with updated version
+    $lines = Get-Content $PROFILE
+    $newLines = @()
+    $inStocky = $false
+    $braceDepth = 0
+    foreach ($line in $lines) {
+        if ($line -match "# Stocky AI -- local AI assistant") { $inStocky = $true; continue }
+        if ($line -match "^function stocky" -and -not $inStocky) { $inStocky = $true; $braceDepth = 0 }
+        if ($inStocky) {
+            $braceDepth += ($line.ToCharArray() | Where-Object { $_ -eq '{' }).Count
+            $braceDepth -= ($line.ToCharArray() | Where-Object { $_ -eq '}' }).Count
+            if ($braceDepth -le 0 -and $line -match '}') { $inStocky = $false; continue }
+            continue
+        }
+        $newLines += $line
+    }
+    Set-Content -Path $PROFILE -Value ($newLines -join "`n")
+    Add-Content -Path $PROFILE -Value $stockyFunction
+    Write-OK "Updated 'stocky' function in $PROFILE"
+} else {
     Add-Content -Path $PROFILE -Value $stockyFunction
     Write-OK "Added 'stocky' function to $PROFILE"
-} else {
-    Write-Skip "'stocky' function already exists in profile"
 }
 
 # --- 12. Verify setup ---
